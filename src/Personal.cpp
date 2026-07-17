@@ -1,4 +1,4 @@
-#include "Personal.h"
+    #include "Personal.h"
 
 void Personal::vizualizeazaJurnale() const {
     // TODO: Jurnalizare nu expune istoricul actiunilor necesar afisarii aici.
