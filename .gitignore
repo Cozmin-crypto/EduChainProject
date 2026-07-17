@@ -1,0 +1,19 @@
+# Executabile
+*.exe
+
+# Fișiere obiect
+*.obj
+
+# Fișiere de debug
+*.pdb
+*.ilk
+
+# Directoare Visual Studio
+.vs/
+Debug/
+Release/
+x64/
+x86/
+
+# Fișiere temporare
+*.log
