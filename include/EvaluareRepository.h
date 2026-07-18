@@ -81,6 +81,10 @@ public:
                         const std::string& enunt,
                         double punctajMaxim,
                         long long ordine);
+    bool actualizeazaIntrebare(int intrebareId,
+                               const std::string& enunt,
+                               double punctajMaxim,
+                               long long ordine);
     bool stergeIntrebare(int intrebareId);
     std::vector<IntrebareChestionarInregistrare> listeazaIntrebari(int chestionarId);
 

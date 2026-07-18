@@ -397,6 +397,26 @@ int EvaluareRepository::adaugaIntrebare(int chestionarId,
     }
 }
 
+bool EvaluareRepository::actualizeazaIntrebare(int intrebareId,
+                                               const std::string& enunt,
+                                               double punctajMaxim,
+                                               long long ordine) {
+    valideazaId(intrebareId, "Id-ul intrebarii");
+    if (enunt.empty()) {
+        throw ExceptieEdu("Enuntul intrebarii nu poate fi gol.");
+    }
+    if (!std::isfinite(punctajMaxim) || punctajMaxim < 0.0 || ordine < 0) {
+        throw ExceptieEdu("Punctajul si ordinea intrebarii trebuie sa fie nenegative.");
+    }
+    return conector.executaInterogareParametrizata(
+               "UPDATE intrebari_chestionar "
+               "SET enunt = ?, punctaj_maxim = ?, ordine = ? WHERE id = ?;",
+               {enunt,
+                convertesteText(punctajMaxim),
+                std::to_string(ordine),
+                std::to_string(intrebareId)}) > 0;
+}
+
 bool EvaluareRepository::stergeIntrebare(int intrebareId) {
     valideazaId(intrebareId, "Id-ul intrebarii");
     const auto rezultat = conector.executaSelectParametrizat(
