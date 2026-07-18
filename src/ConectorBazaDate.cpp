@@ -116,12 +116,16 @@ void ConectorBazaDate::executaInterogare(const std::string& interogare) {
 
 std::vector<std::vector<std::string>> ConectorBazaDate::executaSelect(
     const std::string& interogare) {
-    if (interogare.empty()) {
-        throw ExceptieEdu("Interogarea SELECT nu poate fi goala.");
-    }
+    return executaSelectParametrizat(interogare, {});
+}
 
-    if (!esteConectat()) {
-        throw ExceptieEdu("Nu exista o conexiune deschisa la baza de date.");
+namespace {
+std::unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> pregatesteInterogare(
+    sqlite3* conexiune,
+    const std::string& interogare,
+    const std::vector<std::string>& parametri) {
+    if (interogare.empty()) {
+        throw ExceptieEdu("Interogarea parametrizata nu poate fi goala.");
     }
 
     sqlite3_stmt* instructiuneBruta = nullptr;
@@ -133,7 +137,7 @@ std::vector<std::vector<std::string>> ConectorBazaDate::executaSelect(
         &instructiuneBruta,
         &restInterogare);
     if (pregatire != SQLITE_OK) {
-        aruncaEroareSQLite(conexiune, pregatire, "Pregatirea interogarii SELECT a esuat");
+        aruncaEroareSQLite(conexiune, pregatire, "Pregatirea interogarii a esuat");
     }
 
     std::unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> instructiune(
@@ -145,9 +149,54 @@ std::vector<std::vector<std::string>> ConectorBazaDate::executaSelect(
         ++restInterogare;
     }
     if (restInterogare != nullptr && *restInterogare != '\0') {
-        throw ExceptieEdu("Interogarea SELECT trebuie sa contina o singura instructiune.");
+        throw ExceptieEdu("Interogarea parametrizata trebuie sa contina o singura instructiune.");
     }
 
+    if (sqlite3_bind_parameter_count(instructiune.get()) !=
+        static_cast<int>(parametri.size())) {
+        throw ExceptieEdu("Numarul parametrilor nu corespunde interogarii.");
+    }
+
+    for (std::size_t index = 0; index < parametri.size(); ++index) {
+        const int rezultat = sqlite3_bind_text(
+            instructiune.get(),
+            static_cast<int>(index + 1),
+            parametri[index].c_str(),
+            static_cast<int>(parametri[index].size()),
+            SQLITE_TRANSIENT);
+        if (rezultat != SQLITE_OK) {
+            aruncaEroareSQLite(conexiune, rezultat, "Legarea parametrilor a esuat");
+        }
+    }
+
+    return instructiune;
+}
+}
+
+int ConectorBazaDate::executaInterogareParametrizata(
+    const std::string& interogare,
+    const std::vector<std::string>& parametri) {
+    if (!esteConectat()) {
+        throw ExceptieEdu("Nu exista o conexiune deschisa la baza de date.");
+    }
+
+    auto instructiune = pregatesteInterogare(conexiune, interogare, parametri);
+    const int pas = sqlite3_step(instructiune.get());
+    if (pas != SQLITE_DONE) {
+        aruncaEroareSQLite(conexiune, pas, "Executarea interogarii parametrizate a esuat");
+    }
+
+    return sqlite3_changes(conexiune);
+}
+
+std::vector<std::vector<std::string>> ConectorBazaDate::executaSelectParametrizat(
+    const std::string& interogare,
+    const std::vector<std::string>& parametri) {
+    if (!esteConectat()) {
+        throw ExceptieEdu("Nu exista o conexiune deschisa la baza de date.");
+    }
+
+    auto instructiune = pregatesteInterogare(conexiune, interogare, parametri);
     const int numarColoane = sqlite3_column_count(instructiune.get());
     if (numarColoane == 0) {
         throw ExceptieEdu("Interogarea nu returneaza rezultate SELECT.");
