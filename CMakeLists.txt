@@ -128,3 +128,7 @@ educhain_add_test(TestIntegrareService
     tests/TestIntegrareService.cpp)
 educhain_add_test(TestIntegrarePersistenta
     tests/TestIntegrarePersistenta.cpp)
+educhain_add_test(TestIntegrareReteaLectii
+    tests/TestIntegrareReteaLectii.cpp)
+educhain_add_test(TestIntegrareReteaEvaluari
+    tests/TestIntegrareReteaEvaluari.cpp)

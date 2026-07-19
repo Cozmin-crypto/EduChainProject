@@ -228,6 +228,156 @@ void ClientEdu::stergeCurs(int cursId) {
     verificaSucces(executaCerere(std::move(cerere)));
 }
 
+std::vector<LectiePublicEdu> ClientEdu::listeazaLectii(int cursId) {
+    CerereEdu cerere;
+    cerere.tip = TipCerereEdu::ListeazaLectii;
+    cerere.campuri = {{static_cast<std::uint16_t>(CampEdu::CursId),
+                       std::to_string(cursId)}};
+    const auto raspuns = executaCerere(std::move(cerere));
+    verificaSucces(raspuns);
+    std::vector<LectiePublicEdu> lectii;
+    for (const auto& camp : raspuns.campuri) {
+        if (camp.id != static_cast<std::uint16_t>(CampEdu::Lectie)) {
+            throw ExceptieEdu("Raspunsul listei de lectii contine un camp invalid.");
+        }
+        lectii.push_back(ProtocolEdu::decodificaLectie(camp.valoare));
+    }
+    return lectii;
+}
+
+std::optional<LectiePublicEdu> ClientEdu::obtineLectie(int lectieId) {
+    CerereEdu cerere;
+    cerere.tip = TipCerereEdu::ObtineLectie;
+    cerere.campuri = {{static_cast<std::uint16_t>(CampEdu::LectieId),
+                       std::to_string(lectieId)}};
+    const auto raspuns = executaCerere(std::move(cerere));
+    if (raspuns.cod == CodRezultatEdu::ResursaInexistenta) {
+        return std::nullopt;
+    }
+    verificaSucces(raspuns);
+    const auto lectie = ProtocolEdu::cautaCamp(raspuns.campuri, CampEdu::Lectie);
+    if (!lectie) {
+        throw ExceptieEdu("Raspunsul nu contine lectia solicitata.");
+    }
+    return ProtocolEdu::decodificaLectie(*lectie);
+}
+
+int ClientEdu::creeazaLectieText(int cursId,
+                                 const std::string& nume,
+                                 const std::string& continut,
+                                 long long dimensiuneOcteti,
+                                 long long numarCuvinte) {
+    CerereEdu cerere;
+    cerere.tip = TipCerereEdu::CreeazaLectieText;
+    cerere.campuri = {
+        {static_cast<std::uint16_t>(CampEdu::CursId), std::to_string(cursId)},
+        {static_cast<std::uint16_t>(CampEdu::Nume), nume},
+        {static_cast<std::uint16_t>(CampEdu::Continut), continut},
+        {static_cast<std::uint16_t>(CampEdu::DimensiuneOcteti),
+         std::to_string(dimensiuneOcteti)},
+        {static_cast<std::uint16_t>(CampEdu::NumarCuvinte),
+         std::to_string(numarCuvinte)}};
+    const auto raspuns = executaCerere(std::move(cerere));
+    verificaSucces(raspuns);
+    const auto id = ProtocolEdu::cautaCamp(raspuns.campuri, CampEdu::LectieId);
+    if (!id) {
+        throw ExceptieEdu("Raspunsul nu contine ID-ul lectiei create.");
+    }
+    return convertesteId(*id, "Id-ul lectiei create");
+}
+
+int ClientEdu::creeazaLectieVideo(int cursId,
+                                  const std::string& nume,
+                                  const std::string& continut,
+                                  long long dimensiuneOcteti,
+                                  long long durata,
+                                  const std::string& codec) {
+    CerereEdu cerere;
+    cerere.tip = TipCerereEdu::CreeazaLectieVideo;
+    cerere.campuri = {
+        {static_cast<std::uint16_t>(CampEdu::CursId), std::to_string(cursId)},
+        {static_cast<std::uint16_t>(CampEdu::Nume), nume},
+        {static_cast<std::uint16_t>(CampEdu::Continut), continut},
+        {static_cast<std::uint16_t>(CampEdu::DimensiuneOcteti),
+         std::to_string(dimensiuneOcteti)},
+        {static_cast<std::uint16_t>(CampEdu::Durata), std::to_string(durata)},
+        {static_cast<std::uint16_t>(CampEdu::Codec), codec}};
+    const auto raspuns = executaCerere(std::move(cerere));
+    verificaSucces(raspuns);
+    const auto id = ProtocolEdu::cautaCamp(raspuns.campuri, CampEdu::LectieId);
+    if (!id) {
+        throw ExceptieEdu("Raspunsul nu contine ID-ul lectiei create.");
+    }
+    return convertesteId(*id, "Id-ul lectiei create");
+}
+
+void ClientEdu::actualizeazaLectie(const CerereActualizareLectieClient& date) {
+    CerereEdu cerere;
+    cerere.tip = TipCerereEdu::ActualizeazaLectie;
+    cerere.campuri = {
+        {static_cast<std::uint16_t>(CampEdu::LectieId), std::to_string(date.lectieId)},
+        {static_cast<std::uint16_t>(CampEdu::CursId), std::to_string(date.cursId)},
+        {static_cast<std::uint16_t>(CampEdu::Nume), date.nume},
+        {static_cast<std::uint16_t>(CampEdu::TipLectie),
+         std::to_string(static_cast<std::uint16_t>(date.tip))},
+        {static_cast<std::uint16_t>(CampEdu::Continut), date.continut},
+        {static_cast<std::uint16_t>(CampEdu::DimensiuneOcteti),
+         std::to_string(date.dimensiuneOcteti)}};
+    if (date.numarCuvinte) {
+        cerere.campuri.push_back({static_cast<std::uint16_t>(CampEdu::NumarCuvinte),
+                                  std::to_string(*date.numarCuvinte)});
+    }
+    if (date.durata) {
+        cerere.campuri.push_back({static_cast<std::uint16_t>(CampEdu::Durata),
+                                  std::to_string(*date.durata)});
+    }
+    if (date.codec) {
+        cerere.campuri.push_back({static_cast<std::uint16_t>(CampEdu::Codec), *date.codec});
+    }
+    verificaSucces(executaCerere(std::move(cerere)));
+}
+
+void ClientEdu::stergeLectie(int lectieId) {
+    CerereEdu cerere;
+    cerere.tip = TipCerereEdu::StergeLectie;
+    cerere.campuri = {{static_cast<std::uint16_t>(CampEdu::LectieId),
+                       std::to_string(lectieId)}};
+    verificaSucces(executaCerere(std::move(cerere)));
+}
+
+std::vector<EvaluarePublicEdu> ClientEdu::listeazaEvaluari(int cursId) {
+    CerereEdu c; c.tip=TipCerereEdu::ListeazaEvaluari;
+    c.campuri={{static_cast<std::uint16_t>(CampEdu::CursId),std::to_string(cursId)}};
+    const auto r=executaCerere(std::move(c)); verificaSucces(r);
+    std::vector<EvaluarePublicEdu> rezultat;
+    for(const auto& camp:r.campuri){ if(camp.id!=static_cast<std::uint16_t>(CampEdu::Evaluare)) throw ExceptieEdu("Raspunsul contine un camp neasteptat."); rezultat.push_back(ProtocolEdu::decodificaEvaluare(camp.valoare)); }
+    return rezultat;
+}
+
+std::optional<EvaluarePublicEdu> ClientEdu::obtineEvaluare(int id) {
+    CerereEdu c; c.tip=TipCerereEdu::ObtineEvaluare; c.campuri={{static_cast<std::uint16_t>(CampEdu::EvaluareId),std::to_string(id)}};
+    const auto r=executaCerere(std::move(c)); if(r.cod==CodRezultatEdu::ResursaInexistenta)return std::nullopt; verificaSucces(r);
+    if(r.campuri.size()!=1||r.campuri[0].id!=static_cast<std::uint16_t>(CampEdu::Evaluare))throw ExceptieEdu("Raspunsul evaluarii este invalid.");
+    return ProtocolEdu::decodificaEvaluare(r.campuri[0].valoare);
+}
+
+namespace {
+void adaugaCampuriEvaluareClient(CerereEdu& c,const CerereSalvareEvaluareClient& d){
+    c.campuri={{static_cast<std::uint16_t>(CampEdu::CursId),std::to_string(d.cursId)},{static_cast<std::uint16_t>(CampEdu::Nume),d.nume},{static_cast<std::uint16_t>(CampEdu::LimitaTimp),std::to_string(d.limitaTimp)},{static_cast<std::uint16_t>(CampEdu::EsteObligatorie),d.esteObligatorie?"1":"0"}};
+    if(d.numarIntrebari)c.campuri.push_back({static_cast<std::uint16_t>(CampEdu::NumarIntrebari),std::to_string(*d.numarIntrebari)});
+    if(d.pondere)c.campuri.push_back({static_cast<std::uint16_t>(CampEdu::Pondere),std::to_string(*d.pondere)});
+}
+int idCreatEvaluareClient(ClientEdu& client,CerereEdu c){const auto r=client.executaCerere(std::move(c)); if(r.cod!=CodRezultatEdu::Succes)throw ExceptieEdu(r.mesajPublic); const auto id=ProtocolEdu::cautaCamp(r.campuri,CampEdu::EvaluareId);if(!id)throw ExceptieEdu("Raspuns incomplet.");return convertesteId(*id,"Id-ul evaluarii");}
+}
+int ClientEdu::creeazaChestionar(const CerereSalvareEvaluareClient& d){CerereEdu c;c.tip=TipCerereEdu::CreeazaChestionar;adaugaCampuriEvaluareClient(c,d);return idCreatEvaluareClient(*this,std::move(c));}
+int ClientEdu::creeazaExamenFinal(const CerereSalvareEvaluareClient& d){CerereEdu c;c.tip=TipCerereEdu::CreeazaExamenFinal;adaugaCampuriEvaluareClient(c,d);return idCreatEvaluareClient(*this,std::move(c));}
+void ClientEdu::actualizeazaEvaluare(const CerereActualizareEvaluareClient& d){CerereEdu c;c.tip=TipCerereEdu::ActualizeazaEvaluare;adaugaCampuriEvaluareClient(c,d);c.campuri.push_back({static_cast<std::uint16_t>(CampEdu::EvaluareId),std::to_string(d.evaluareId)});c.campuri.push_back({static_cast<std::uint16_t>(CampEdu::TipEvaluare),std::to_string(static_cast<unsigned>(d.tip))});verificaSucces(executaCerere(std::move(c)));}
+void ClientEdu::stergeEvaluare(int id){CerereEdu c;c.tip=TipCerereEdu::StergeEvaluare;c.campuri={{static_cast<std::uint16_t>(CampEdu::EvaluareId),std::to_string(id)}};verificaSucces(executaCerere(std::move(c)));}
+std::vector<IntrebarePublicEdu> ClientEdu::listeazaIntrebari(int id){CerereEdu c;c.tip=TipCerereEdu::ListeazaIntrebari;c.campuri={{static_cast<std::uint16_t>(CampEdu::EvaluareId),std::to_string(id)}};const auto r=executaCerere(std::move(c));verificaSucces(r);std::vector<IntrebarePublicEdu> v;for(const auto& x:r.campuri){if(x.id!=static_cast<std::uint16_t>(CampEdu::Intrebare))throw ExceptieEdu("Raspuns invalid.");v.push_back(ProtocolEdu::decodificaIntrebare(x.valoare));}return v;}
+int ClientEdu::adaugaIntrebare(int ev,const std::string& en,double p,long long o){CerereEdu c;c.tip=TipCerereEdu::AdaugaIntrebare;c.campuri={{static_cast<std::uint16_t>(CampEdu::EvaluareId),std::to_string(ev)},{static_cast<std::uint16_t>(CampEdu::Enunt),en},{static_cast<std::uint16_t>(CampEdu::PunctajMaxim),std::to_string(p)},{static_cast<std::uint16_t>(CampEdu::Ordine),std::to_string(o)}};const auto r=executaCerere(std::move(c));verificaSucces(r);const auto id=ProtocolEdu::cautaCamp(r.campuri,CampEdu::IntrebareId);if(!id)throw ExceptieEdu("Raspuns incomplet.");return convertesteId(*id,"Id-ul intrebarii");}
+void ClientEdu::actualizeazaIntrebare(int ev,int id,const std::string& en,double p,long long o){CerereEdu c;c.tip=TipCerereEdu::ActualizeazaIntrebare;c.campuri={{static_cast<std::uint16_t>(CampEdu::EvaluareId),std::to_string(ev)},{static_cast<std::uint16_t>(CampEdu::IntrebareId),std::to_string(id)},{static_cast<std::uint16_t>(CampEdu::Enunt),en},{static_cast<std::uint16_t>(CampEdu::PunctajMaxim),std::to_string(p)},{static_cast<std::uint16_t>(CampEdu::Ordine),std::to_string(o)}};verificaSucces(executaCerere(std::move(c)));}
+void ClientEdu::stergeIntrebare(int ev,int id){CerereEdu c;c.tip=TipCerereEdu::StergeIntrebare;c.campuri={{static_cast<std::uint16_t>(CampEdu::EvaluareId),std::to_string(ev)},{static_cast<std::uint16_t>(CampEdu::IntrebareId),std::to_string(id)}};verificaSucces(executaCerere(std::move(c)));}
+
 void ClientEdu::deconecteaza() {
     if (!conectat) {
         return;

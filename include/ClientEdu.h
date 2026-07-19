@@ -8,6 +8,32 @@
 #include <string>
 #include <vector>
 
+struct CerereActualizareLectieClient {
+    int lectieId{};
+    int cursId{};
+    std::string nume;
+    TipLectieEdu tip{TipLectieEdu::Text};
+    std::string continut;
+    long long dimensiuneOcteti{};
+    std::optional<long long> numarCuvinte;
+    std::optional<long long> durata;
+    std::optional<std::string> codec;
+};
+
+struct CerereSalvareEvaluareClient {
+    int cursId{};
+    std::string nume;
+    long long limitaTimp{};
+    bool esteObligatorie{};
+    std::optional<long long> numarIntrebari;
+    std::optional<double> pondere;
+};
+
+struct CerereActualizareEvaluareClient : CerereSalvareEvaluareClient {
+    int evaluareId{};
+    TipEvaluareEdu tip{TipEvaluareEdu::Chestionar};
+};
+
 class ClientEdu : public ManagerSocket {
 private:
     bool conectat{};
@@ -40,6 +66,34 @@ public:
                           const std::string& nume,
                           std::optional<int> parinteId = std::nullopt);
     void stergeCurs(int cursId);
+    std::vector<LectiePublicEdu> listeazaLectii(int cursId);
+    std::optional<LectiePublicEdu> obtineLectie(int lectieId);
+    int creeazaLectieText(int cursId,
+                          const std::string& nume,
+                          const std::string& continut,
+                          long long dimensiuneOcteti,
+                          long long numarCuvinte);
+    int creeazaLectieVideo(int cursId,
+                           const std::string& nume,
+                           const std::string& continut,
+                           long long dimensiuneOcteti,
+                           long long durata,
+                           const std::string& codec);
+    void actualizeazaLectie(const CerereActualizareLectieClient& cerere);
+    void stergeLectie(int lectieId);
+    std::vector<EvaluarePublicEdu> listeazaEvaluari(int cursId);
+    std::optional<EvaluarePublicEdu> obtineEvaluare(int evaluareId);
+    int creeazaChestionar(const CerereSalvareEvaluareClient& cerere);
+    int creeazaExamenFinal(const CerereSalvareEvaluareClient& cerere);
+    void actualizeazaEvaluare(const CerereActualizareEvaluareClient& cerere);
+    void stergeEvaluare(int evaluareId);
+    std::vector<IntrebarePublicEdu> listeazaIntrebari(int evaluareId);
+    int adaugaIntrebare(int evaluareId, const std::string& enunt,
+                        double punctajMaxim, long long ordine);
+    void actualizeazaIntrebare(int evaluareId, int intrebareId,
+                               const std::string& enunt, double punctajMaxim,
+                               long long ordine);
+    void stergeIntrebare(int evaluareId, int intrebareId);
     void deconecteaza();
 
     bool esteConectat() const noexcept;
