@@ -314,8 +314,8 @@ RaspunsEdu ServerEdu::distribuieCerere(const CerereEdu& cerere,
             return raspuns(cerere.idCerere, CodRezultatEdu::Succes, "PONG");
         case TipCerereEdu::Autentificare:
             return proceseazaAutentificare(cerere, sesiune);
-        case TipCerereEdu::InregistrareStudent:
-            return proceseazaInregistrareStudent(cerere);
+        case TipCerereEdu::Inregistrare:
+            return proceseazaInregistrare(cerere);
         case TipCerereEdu::ListeazaCursuri:
             return proceseazaListeazaCursuri(cerere, sesiune);
         case TipCerereEdu::ObtineCurs:
@@ -400,10 +400,11 @@ RaspunsEdu ServerEdu::proceseazaAutentificare(const CerereEdu& cerere,
     return raspunsAutentificare;
 }
 
-RaspunsEdu ServerEdu::proceseazaInregistrareStudent(const CerereEdu& cerere){
-    verificaCampuri(cerere,{CampEdu::Nume,CampEdu::Prenume,CampEdu::Email,CampEdu::Parola});
-    const int id=autentificareService->inregistreazaStudent(campObligatoriu(cerere,CampEdu::Nume),campObligatoriu(cerere,CampEdu::Prenume),campObligatoriu(cerere,CampEdu::Email),campObligatoriu(cerere,CampEdu::Parola));
-    RaspunsEdu r=raspuns(cerere.idCerere,CodRezultatEdu::Succes,"Student inregistrat cu succes."); r.campuri.push_back({static_cast<std::uint16_t>(CampEdu::UtilizatorId),std::to_string(id)}); return r;
+RaspunsEdu ServerEdu::proceseazaInregistrare(const CerereEdu& cerere){
+    verificaCampuri(cerere,{CampEdu::Nume,CampEdu::Prenume,CampEdu::Email,CampEdu::Parola,CampEdu::Rol});
+    const std::string rol=campObligatoriu(cerere,CampEdu::Rol);
+    const int id=autentificareService->inregistreaza(campObligatoriu(cerere,CampEdu::Nume),campObligatoriu(cerere,CampEdu::Prenume),campObligatoriu(cerere,CampEdu::Email),campObligatoriu(cerere,CampEdu::Parola),rol);
+    RaspunsEdu r=raspuns(cerere.idCerere,CodRezultatEdu::Succes,"Cont de "+rol+" inregistrat cu succes."); r.campuri.push_back({static_cast<std::uint16_t>(CampEdu::UtilizatorId),std::to_string(id)}); return r;
 }
 
 RaspunsEdu ServerEdu::proceseazaListeazaCursuri(

@@ -28,5 +28,8 @@ RezultatAutentificare AutentificareService::autentifica(
             utilizator->email, utilizator->rol, "Autentificare reusita."};
 }
 
+int AutentificareService::inregistreaza(const std::string& n,const std::string& p,const std::string& e,const std::string& parola,const std::string& rol){
+ if(n.empty()||p.empty())throw ExceptieEdu("Numele si prenumele sunt obligatorii."); if(e.empty()||e.find('@')==std::string::npos||e.find('.')==std::string::npos)throw ExceptieEdu("Email invalid."); if(parola.size()<6)throw ExceptieEdu("Parola trebuie sa aiba cel putin 6 caractere."); if(rol!="student"&&rol!="profesor")throw ExceptieEdu("Rolul trebuie sa fie student sau profesor."); if(utilizatori.cautaDupaEmail(e))throw ExceptieEdu("Email deja utilizat."); return utilizatori.inregistreazaUtilizator(e,parola,rol); }
+
 int AutentificareService::inregistreazaStudent(const std::string& n,const std::string& p,const std::string& e,const std::string& parola){
- if(n.empty()||p.empty())throw ExceptieEdu("Numele si prenumele sunt obligatorii."); if(e.empty()||e.find('@')==std::string::npos||e.find('.')==std::string::npos)throw ExceptieEdu("Email invalid."); if(parola.size()<6)throw ExceptieEdu("Parola trebuie sa aiba cel putin 6 caractere."); if(utilizatori.cautaDupaEmail(e))throw ExceptieEdu("Email deja utilizat."); return utilizatori.inregistreazaStudent(e,parola); }
+ return inregistreaza(n,p,e,parola,"student"); }

@@ -122,8 +122,35 @@ std::optional<UtilizatorInregistrare> UtilizatorRepository::cautaDupaEmail(
     return transformaRandul(rezultate.front());
 }
 
-int UtilizatorRepository::inregistreazaStudent(const std::string& email,const std::string& parola){
+int UtilizatorRepository::inregistreazaUtilizator(const std::string& email,
+                                                  const std::string& parola,
+                                                  const std::string& rol) {
+    if (rol != "student" && rol != "profesor") {
+        throw ExceptieEdu("La inregistrare rolul trebuie sa fie student sau profesor.");
+    }
     conector.executaInterogareParametrizata("BEGIN TRANSACTION;",{});
-    try { const int id=adaugaUtilizator(email,parola,"student"); conector.executaInterogareParametrizata("INSERT INTO studenti (utilizator_id) VALUES (?);",{std::to_string(id)}); conector.executaInterogareParametrizata("COMMIT;",{}); return id; }
+    try {
+        const int id = adaugaUtilizator(email, parola, rol);
+        if (rol == "student") {
+            conector.executaInterogareParametrizata(
+                "INSERT INTO studenti (utilizator_id) VALUES (?);",
+                {std::to_string(id)});
+        } else {
+            conector.executaInterogareParametrizata(
+                "INSERT INTO personal (utilizator_id, departament, data_angajarii) "
+                "VALUES (?, 'Nespecificat', DATE('now'));",
+                {std::to_string(id)});
+            conector.executaInterogareParametrizata(
+                "INSERT INTO profesori (utilizator_id) VALUES (?);",
+                {std::to_string(id)});
+        }
+        conector.executaInterogareParametrizata("COMMIT;",{});
+        return id;
+    }
     catch (...) { try { conector.executaInterogareParametrizata("ROLLBACK;",{}); } catch (...) {} throw; }
+}
+
+int UtilizatorRepository::inregistreazaStudent(const std::string& email,
+                                                const std::string& parola) {
+    return inregistreazaUtilizator(email, parola, "student");
 }

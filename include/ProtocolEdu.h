@@ -40,7 +40,9 @@ enum class TipCerereEdu : std::uint16_t {
     RetrageStudentDeLaCurs = 30,
     ListeazaCursuriInscrise = 31,
     ListeazaStudentiCurs = 32,
-    VerificaInscriere = 33, InregistrareStudent = 34
+    VerificaInscriere = 33,
+    Inregistrare = 34,
+    InregistrareStudent = Inregistrare
 };
 
 enum class CodRezultatEdu : std::uint16_t {
