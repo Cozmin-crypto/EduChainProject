@@ -142,3 +142,5 @@ educhain_add_test(TestIntegrareInscrieri
     tests/TestIntegrareInscrieri.cpp)
 educhain_add_test(TestIntegrareReteaInscrieri
     tests/TestIntegrareReteaInscrieri.cpp)
+educhain_add_test(TestEndToEndEduChain
+    tests/TestEndToEndEduChain.cpp)
