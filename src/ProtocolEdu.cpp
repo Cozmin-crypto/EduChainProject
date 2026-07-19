@@ -430,3 +430,26 @@ IntrebarePublicEdu ProtocolEdu::decodificaIntrebare(const std::string& date) {
     if(!id||!ev||!en||!p||!o) throw ExceptieEdu("Datele intrebarii sunt incomplete.");
     return {convertesteIntregPozitiv(*id,"Id-ul intrebarii"),convertesteIntregPozitiv(*ev,"Id-ul evaluarii"),*en,convertesteRealNenegativ(*p,"Punctajul"),convertesteIntregNenegativ(*o,"Ordinea")};
 }
+
+std::string ProtocolEdu::codificaIncercare(const IncercarePublicEdu& i) {
+    std::vector<CampProtocolEdu> c{
+        {static_cast<std::uint16_t>(CampEdu::IncercareId),std::to_string(i.id)},
+        {static_cast<std::uint16_t>(CampEdu::EvaluareId),std::to_string(i.evaluareId)},
+        {static_cast<std::uint16_t>(CampEdu::StudentId),std::to_string(i.studentId)},
+        {static_cast<std::uint16_t>(CampEdu::InceputaLa),i.inceputaLa},
+        {static_cast<std::uint16_t>(CampEdu::ScorBrut),std::to_string(i.scorBrut)},
+        {static_cast<std::uint16_t>(CampEdu::NotaFinala),std::to_string(i.notaFinala)}};
+    if(i.finalizataLa)c.push_back({static_cast<std::uint16_t>(CampEdu::FinalizataLa),*i.finalizataLa});
+    std::string rezultat;adaugaCampuri(rezultat,c);return rezultat;
+}
+
+IncercarePublicEdu ProtocolEdu::decodificaIncercare(const std::string& date) {
+    std::size_t pz=0;const auto c=citesteCampuri(date,pz);if(pz!=date.size())throw ExceptieEdu("Datele incercarii sunt invalide.");
+    verificaCampuriExacte(c,{CampEdu::IncercareId,CampEdu::EvaluareId,CampEdu::StudentId,CampEdu::InceputaLa,CampEdu::FinalizataLa,CampEdu::ScorBrut,CampEdu::NotaFinala},"incercarii");
+    const auto id=cautaCamp(c,CampEdu::IncercareId),ev=cautaCamp(c,CampEdu::EvaluareId),st=cautaCamp(c,CampEdu::StudentId),start=cautaCamp(c,CampEdu::InceputaLa),scor=cautaCamp(c,CampEdu::ScorBrut),nota=cautaCamp(c,CampEdu::NotaFinala);
+    if(!id||!ev||!st||!start||!scor||!nota)throw ExceptieEdu("Datele incercarii sunt incomplete.");
+    IncercarePublicEdu i{convertesteIntregPozitiv(*id,"Id-ul incercarii"),convertesteIntregPozitiv(*ev,"Id-ul evaluarii"),convertesteIntregPozitiv(*st,"Id-ul studentului"),*start,std::nullopt,convertesteRealNenegativ(*scor,"Scorul brut"),convertesteRealNenegativ(*nota,"Nota finala")};
+    i.finalizataLa=cautaCamp(c,CampEdu::FinalizataLa);return i;
+}
+std::string ProtocolEdu::codificaStudent(const StudentPublicEdu&s){std::string r;adaugaCampuri(r,{{static_cast<std::uint16_t>(CampEdu::StudentId),std::to_string(s.id)},{static_cast<std::uint16_t>(CampEdu::Email),s.email}});return r;}
+StudentPublicEdu ProtocolEdu::decodificaStudent(const std::string& d){std::size_t p=0;const auto c=citesteCampuri(d,p);if(p!=d.size())throw ExceptieEdu("Student public invalid.");verificaCampuriExacte(c,{CampEdu::StudentId,CampEdu::Email},"studentului");const auto id=cautaCamp(c,CampEdu::StudentId),e=cautaCamp(c,CampEdu::Email);if(!id||!e)throw ExceptieEdu("Student public incomplet.");return {convertesteIntregPozitiv(*id,"Id student"),*e};}

@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-constexpr std::uint16_t versiuneProtocolEdu = 1;
+constexpr std::uint16_t versiuneProtocolEdu = 2;
 
 enum class TipCerereEdu : std::uint16_t {
     Ping = 1,
@@ -31,7 +31,16 @@ enum class TipCerereEdu : std::uint16_t {
     ListeazaIntrebari = 21,
     AdaugaIntrebare = 22,
     ActualizeazaIntrebare = 23,
-    StergeIntrebare = 24
+    StergeIntrebare = 24,
+    PornesteIncercare = 25,
+    ObtineIncercare = 26,
+    SalveazaRaspuns = 27,
+    FinalizeazaIncercare = 28,
+    InscrieStudentLaCurs = 29,
+    RetrageStudentDeLaCurs = 30,
+    ListeazaCursuriInscrise = 31,
+    ListeazaStudentiCurs = 32,
+    VerificaInscriere = 33
 };
 
 enum class CodRezultatEdu : std::uint16_t {
@@ -75,7 +84,19 @@ enum class CampEdu : std::uint16_t {
     Enunt = 26,
     PunctajMaxim = 27,
     Ordine = 28,
-    Intrebare = 29
+    Intrebare = 29,
+    IncercareId = 30,
+    StudentId = 31,
+    InceputaLa = 32,
+    FinalizataLa = 33,
+    ScorBrut = 34,
+    NotaFinala = 35,
+    Raspuns = 36,
+    PunctajObtinut = 37,
+    Incercare = 38,
+    RaspunsCorect = 39,
+    Inscris = 40,
+    StudentPublic = 41
 };
 
 enum class TipLectieEdu : std::uint16_t {
@@ -147,6 +168,31 @@ struct IntrebarePublicEdu {
     long long ordine{};
 };
 
+struct IncercarePublicEdu {
+    int id{};
+    int evaluareId{};
+    int studentId{};
+    std::string inceputaLa;
+    std::optional<std::string> finalizataLa;
+    double scorBrut{};
+    double notaFinala{};
+};
+
+struct RaspunsPublicEdu {
+    int incercareId{};
+    int intrebareId{};
+    std::string continut;
+    double punctajObtinut{};
+};
+
+struct RezultatPublicEdu {
+    int incercareId{};
+    double scorBrut{};
+    double notaFinala{};
+    std::optional<std::string> finalizataLa;
+};
+struct StudentPublicEdu { int id{}; std::string email; };
+
 class ProtocolEdu {
 public:
     static std::string codificaCerere(const CerereEdu& cerere);
@@ -166,4 +212,8 @@ public:
     static EvaluarePublicEdu decodificaEvaluare(const std::string& date);
     static std::string codificaIntrebare(const IntrebarePublicEdu& intrebare);
     static IntrebarePublicEdu decodificaIntrebare(const std::string& date);
+    static std::string codificaIncercare(const IncercarePublicEdu& incercare);
+    static IncercarePublicEdu decodificaIncercare(const std::string& date);
+    static std::string codificaStudent(const StudentPublicEdu& student);
+    static StudentPublicEdu decodificaStudent(const std::string& date);
 };

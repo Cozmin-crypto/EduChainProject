@@ -5,6 +5,7 @@
 #include "ExceptieEdu.h"
 #include "LectieService.h"
 #include "EvaluareService.h"
+#include "InscriereService.h"
 
 #include <WS2tcpip.h>
 
@@ -108,6 +109,7 @@ CodRezultatEdu clasificaExceptie(const std::string& mesaj) {
     if (mesaj == "AUTENTIFICARE_NECESARA" ||
         mesaj.find("nu poate administra") != std::string::npos ||
         mesaj.find("Studentul nu poate") != std::string::npos ||
+        mesaj.find("doar studentilor") != std::string::npos ||
         mesaj.find("Profesorul poate crea doar") != std::string::npos ||
         mesaj.find("Rolul utilizatorului nu permite") != std::string::npos) {
         return CodRezultatEdu::AccesInterzis;
@@ -150,6 +152,7 @@ LectiePublicEdu lectiePublica(const LectieInregistrare& lectie) {
 }
 EvaluarePublicEdu evaluarePublica(const EvaluareInregistrare& e){return {e.id,e.cursId,e.profesorId,e.nume,e.tip=="chestionar"?TipEvaluareEdu::Chestionar:TipEvaluareEdu::ExamenFinal,e.limitaTimp,e.esteObligatorie,e.numarIntrebari,e.pondere};}
 IntrebarePublicEdu intrebarePublica(const IntrebareChestionarInregistrare& i){return {i.id,i.chestionarId,i.enunt,i.punctajMaxim,i.ordine};}
+IncercarePublicEdu incercarePublica(const IncercareEvaluareInregistrare& i){return {i.id,i.evaluareId,i.studentId,i.inceputaLa,i.finalizataLa,i.scorBrut,i.notaFinala};}
 }
 
 ServerEdu::ServerEdu(std::uint16_t portNou, std::string adresaIpNoua)
@@ -167,6 +170,7 @@ ServerEdu::ServerEdu(AutentificareService& autentificare,
 
 ServerEdu::ServerEdu(AutentificareService& autentificare,CursService& cursuri,LectieService& lectii,EvaluareService& evaluari,std::uint16_t portNou,std::string adresaIpNoua)
     : ManagerSocket(std::move(adresaIpNoua),portNou),autentificareService(&autentificare),cursService(&cursuri),lectieService(&lectii),evaluareService(&evaluari){}
+ServerEdu::ServerEdu(AutentificareService&a,CursService&c,LectieService&l,EvaluareService&e,InscriereService&i,std::uint16_t p,std::string ip):ManagerSocket(std::move(ip),p),autentificareService(&a),cursService(&c),lectieService(&l),evaluareService(&e),inscriereService(&i){}
 
 ServerEdu::ServerEdu(AutentificareService& autentificare,
                      CursService& cursuri,
@@ -339,6 +343,13 @@ RaspunsEdu ServerEdu::distribuieCerere(const CerereEdu& cerere,
         case TipCerereEdu::ListeazaIntrebari: case TipCerereEdu::AdaugaIntrebare:
         case TipCerereEdu::ActualizeazaIntrebare: case TipCerereEdu::StergeIntrebare:
             return proceseazaCerereIntrebare(cerere,sesiune);
+        case TipCerereEdu::PornesteIncercare: case TipCerereEdu::ObtineIncercare:
+        case TipCerereEdu::SalveazaRaspuns: case TipCerereEdu::FinalizeazaIncercare:
+            return proceseazaCerereIncercare(cerere,sesiune);
+        case TipCerereEdu::InscrieStudentLaCurs: case TipCerereEdu::RetrageStudentDeLaCurs:
+        case TipCerereEdu::ListeazaCursuriInscrise: case TipCerereEdu::ListeazaStudentiCurs:
+        case TipCerereEdu::VerificaInscriere:
+            return proceseazaCerereInscriere(cerere,sesiune);
         case TipCerereEdu::Deconectare:
             verificaCampuri(cerere, {});
             solicitaDeconectare = true;
@@ -397,7 +408,10 @@ RaspunsEdu ServerEdu::proceseazaListeazaCursuri(
     }
     RaspunsEdu rezultat = raspuns(
         cerere.idCerere, CodRezultatEdu::Succes, "Cursurile au fost citite.");
-    for (const auto& curs : cursService->listeazaCursuri()) {
+    const auto cursuriVizibile = inscriereService
+        ? cursService->listeazaCursuri(sesiune.utilizatorId)
+        : cursService->listeazaCursuri();
+    for (const auto& curs : cursuriVizibile) {
         rezultat.campuri.push_back({static_cast<std::uint16_t>(CampEdu::Curs),
                                     ProtocolEdu::codificaCurs(cursPublic(curs))});
     }
@@ -411,7 +425,9 @@ RaspunsEdu ServerEdu::proceseazaObtineCurs(
     verificaAutentificare(sesiune);
     const int id = convertesteId(campObligatoriu(cerere, CampEdu::CursId),
                                  "Id-ul cursului");
-    const auto curs = cursService->obtineCurs(id);
+    const auto curs = inscriereService
+        ? cursService->obtineCurs(sesiune.utilizatorId,id)
+        : cursService->obtineCurs(id);
     if (!curs.has_value()) {
         return raspuns(cerere.idCerere, CodRezultatEdu::ResursaInexistenta,
                        "Cursul nu exista.");
@@ -493,7 +509,10 @@ RaspunsEdu ServerEdu::proceseazaListeazaLectii(
         campObligatoriu(cerere, CampEdu::CursId), "Id-ul cursului");
     RaspunsEdu rezultat = raspuns(
         cerere.idCerere, CodRezultatEdu::Succes, "Lectiile au fost citite.");
-    for (const auto& lectie : lectieService->listeazaDupaCurs(cursId)) {
+    const auto lectiiVizibile = inscriereService
+        ? lectieService->listeazaDupaCurs(sesiune.utilizatorId,cursId)
+        : lectieService->listeazaDupaCurs(cursId);
+    for (const auto& lectie : lectiiVizibile) {
         rezultat.campuri.push_back({static_cast<std::uint16_t>(CampEdu::Lectie),
                                     ProtocolEdu::codificaLectie(lectiePublica(lectie))});
     }
@@ -507,7 +526,9 @@ RaspunsEdu ServerEdu::proceseazaObtineLectie(
     verificaAutentificare(sesiune);
     const int lectieId = convertesteId(
         campObligatoriu(cerere, CampEdu::LectieId), "Id-ul lectiei");
-    const auto lectie = lectieService->obtineLectie(lectieId);
+    const auto lectie = inscriereService
+        ? lectieService->obtineLectie(sesiune.utilizatorId,lectieId)
+        : lectieService->obtineLectie(lectieId);
     if (!lectie) {
         return raspuns(cerere.idCerere, CodRezultatEdu::ResursaInexistenta,
                        "Lectia nu exista.");
@@ -612,8 +633,8 @@ RaspunsEdu ServerEdu::proceseazaStergeLectie(
 
 RaspunsEdu ServerEdu::proceseazaCerereEvaluare(const CerereEdu& c,const SesiuneClient& s){
     verificaAutentificare(s); if(!evaluareService)throw ExceptieEdu("Serviciul de evaluari nu este disponibil.");
-    if(c.tip==TipCerereEdu::ListeazaEvaluari){verificaCampuri(c,{CampEdu::CursId});const int id=convertesteId(campObligatoriu(c,CampEdu::CursId),"Id-ul cursului");RaspunsEdu r=raspuns(c.idCerere,CodRezultatEdu::Succes,"Evaluarile au fost citite.");for(const auto& e:evaluareService->listeazaDupaCurs(id))r.campuri.push_back({static_cast<std::uint16_t>(CampEdu::Evaluare),ProtocolEdu::codificaEvaluare(evaluarePublica(e))});return r;}
-    if(c.tip==TipCerereEdu::ObtineEvaluare){verificaCampuri(c,{CampEdu::EvaluareId});const auto e=evaluareService->obtineEvaluare(convertesteId(campObligatoriu(c,CampEdu::EvaluareId),"Id-ul evaluarii"));if(!e)return raspuns(c.idCerere,CodRezultatEdu::ResursaInexistenta,"Evaluarea nu exista.");RaspunsEdu r=raspuns(c.idCerere,CodRezultatEdu::Succes,"Evaluarea a fost citita.");r.campuri.push_back({static_cast<std::uint16_t>(CampEdu::Evaluare),ProtocolEdu::codificaEvaluare(evaluarePublica(*e))});return r;}
+    if(c.tip==TipCerereEdu::ListeazaEvaluari){verificaCampuri(c,{CampEdu::CursId});const int id=convertesteId(campObligatoriu(c,CampEdu::CursId),"Id-ul cursului");RaspunsEdu r=raspuns(c.idCerere,CodRezultatEdu::Succes,"Evaluarile au fost citite.");const auto lista=inscriereService?evaluareService->listeazaDupaCurs(s.utilizatorId,id):evaluareService->listeazaDupaCurs(id);for(const auto& e:lista)r.campuri.push_back({static_cast<std::uint16_t>(CampEdu::Evaluare),ProtocolEdu::codificaEvaluare(evaluarePublica(e))});return r;}
+    if(c.tip==TipCerereEdu::ObtineEvaluare){verificaCampuri(c,{CampEdu::EvaluareId});const int id=convertesteId(campObligatoriu(c,CampEdu::EvaluareId),"Id-ul evaluarii");const auto e=inscriereService?evaluareService->obtineEvaluare(s.utilizatorId,id):evaluareService->obtineEvaluare(id);if(!e)return raspuns(c.idCerere,CodRezultatEdu::ResursaInexistenta,"Evaluarea nu exista.");RaspunsEdu r=raspuns(c.idCerere,CodRezultatEdu::Succes,"Evaluarea a fost citita.");r.campuri.push_back({static_cast<std::uint16_t>(CampEdu::Evaluare),ProtocolEdu::codificaEvaluare(evaluarePublica(*e))});return r;}
     if(c.tip==TipCerereEdu::StergeEvaluare){verificaCampuri(c,{CampEdu::EvaluareId});evaluareService->stergeEvaluare(s.utilizatorId,convertesteId(campObligatoriu(c,CampEdu::EvaluareId),"Id-ul evaluarii"));return raspuns(c.idCerere,CodRezultatEdu::Succes,"Evaluarea a fost stearsa.");}
     verificaCampuri(c,{CampEdu::EvaluareId,CampEdu::CursId,CampEdu::Nume,CampEdu::TipEvaluare,CampEdu::LimitaTimp,CampEdu::EsteObligatorie,CampEdu::NumarIntrebari,CampEdu::Pondere});
     CerereActualizareEvaluare d;d.actorId=s.utilizatorId;d.cursId=convertesteId(campObligatoriu(c,CampEdu::CursId),"Id-ul cursului");d.nume=campObligatoriu(c,CampEdu::Nume);d.limitaTimp=convertesteNenegativ(campObligatoriu(c,CampEdu::LimitaTimp),"Limita de timp");d.esteObligatorie=convertesteBool(campObligatoriu(c,CampEdu::EsteObligatorie));if(auto v=ProtocolEdu::cautaCamp(c.campuri,CampEdu::NumarIntrebari))d.numarIntrebari=convertesteNenegativ(*v,"Numarul de intrebari");if(auto v=ProtocolEdu::cautaCamp(c.campuri,CampEdu::Pondere))d.pondere=convertesteRealNenegativ(*v,"Ponderea");
@@ -624,11 +645,28 @@ RaspunsEdu ServerEdu::proceseazaCerereEvaluare(const CerereEdu& c,const SesiuneC
 
 RaspunsEdu ServerEdu::proceseazaCerereIntrebare(const CerereEdu& c,const SesiuneClient& s){
     verificaAutentificare(s);if(!evaluareService)throw ExceptieEdu("Serviciul de evaluari nu este disponibil.");
-    if(c.tip==TipCerereEdu::ListeazaIntrebari){verificaCampuri(c,{CampEdu::EvaluareId});const int ev=convertesteId(campObligatoriu(c,CampEdu::EvaluareId),"Id-ul evaluarii");RaspunsEdu r=raspuns(c.idCerere,CodRezultatEdu::Succes,"Intrebarile au fost citite.");for(const auto& i:evaluareService->listeazaIntrebari(ev))r.campuri.push_back({static_cast<std::uint16_t>(CampEdu::Intrebare),ProtocolEdu::codificaIntrebare(intrebarePublica(i))});return r;}
+    if(c.tip==TipCerereEdu::ListeazaIntrebari){verificaCampuri(c,{CampEdu::EvaluareId});const int ev=convertesteId(campObligatoriu(c,CampEdu::EvaluareId),"Id-ul evaluarii");RaspunsEdu r=raspuns(c.idCerere,CodRezultatEdu::Succes,"Intrebarile au fost citite.");const auto lista=inscriereService?evaluareService->listeazaIntrebari(s.utilizatorId,ev):evaluareService->listeazaIntrebari(ev);for(const auto& i:lista)r.campuri.push_back({static_cast<std::uint16_t>(CampEdu::Intrebare),ProtocolEdu::codificaIntrebare(intrebarePublica(i))});return r;}
     if(c.tip==TipCerereEdu::StergeIntrebare){verificaCampuri(c,{CampEdu::EvaluareId,CampEdu::IntrebareId});evaluareService->stergeIntrebare(s.utilizatorId,convertesteId(campObligatoriu(c,CampEdu::EvaluareId),"Id-ul evaluarii"),convertesteId(campObligatoriu(c,CampEdu::IntrebareId),"Id-ul intrebarii"));return raspuns(c.idCerere,CodRezultatEdu::Succes,"Intrebarea a fost stearsa.");}
-    verificaCampuri(c,{CampEdu::EvaluareId,CampEdu::IntrebareId,CampEdu::Enunt,CampEdu::PunctajMaxim,CampEdu::Ordine});CerereActualizareIntrebare d;d.actorId=s.utilizatorId;d.chestionarId=convertesteId(campObligatoriu(c,CampEdu::EvaluareId),"Id-ul evaluarii");d.enunt=campObligatoriu(c,CampEdu::Enunt);d.punctajMaxim=convertesteRealNenegativ(campObligatoriu(c,CampEdu::PunctajMaxim),"Punctajul maxim");d.ordine=convertesteNenegativ(campObligatoriu(c,CampEdu::Ordine),"Ordinea");
+    verificaCampuri(c,{CampEdu::EvaluareId,CampEdu::IntrebareId,CampEdu::Enunt,CampEdu::RaspunsCorect,CampEdu::PunctajMaxim,CampEdu::Ordine});CerereActualizareIntrebare d;d.actorId=s.utilizatorId;d.chestionarId=convertesteId(campObligatoriu(c,CampEdu::EvaluareId),"Id-ul evaluarii");d.enunt=campObligatoriu(c,CampEdu::Enunt);d.raspunsCorect=campObligatoriu(c,CampEdu::RaspunsCorect);d.punctajMaxim=convertesteRealNenegativ(campObligatoriu(c,CampEdu::PunctajMaxim),"Punctajul maxim");d.ordine=convertesteNenegativ(campObligatoriu(c,CampEdu::Ordine),"Ordinea");
     if(c.tip==TipCerereEdu::ActualizeazaIntrebare){d.intrebareId=convertesteId(campObligatoriu(c,CampEdu::IntrebareId),"Id-ul intrebarii");evaluareService->actualizeazaIntrebare(d);return raspuns(c.idCerere,CodRezultatEdu::Succes,"Intrebarea a fost actualizata.");}
     if(ProtocolEdu::cautaCamp(c.campuri,CampEdu::IntrebareId))throw ExceptieEdu("Cererea contine un camp nepermis.");const int id=evaluareService->adaugaIntrebare(d);RaspunsEdu r=raspuns(c.idCerere,CodRezultatEdu::Succes,"Intrebarea a fost adaugata.");r.campuri.push_back({static_cast<std::uint16_t>(CampEdu::IntrebareId),std::to_string(id)});return r;
+}
+
+RaspunsEdu ServerEdu::proceseazaCerereIncercare(const CerereEdu& c,const SesiuneClient& s){
+    verificaAutentificare(s);if(!evaluareService)throw ExceptieEdu("Serviciul de evaluari nu este disponibil.");
+    if(c.tip==TipCerereEdu::PornesteIncercare){verificaCampuri(c,{CampEdu::EvaluareId});const int id=evaluareService->pornesteIncercare(s.utilizatorId,convertesteId(campObligatoriu(c,CampEdu::EvaluareId),"Id-ul evaluarii"));RaspunsEdu r=raspuns(c.idCerere,CodRezultatEdu::Succes,"Incercarea a fost pornita.");r.campuri.push_back({static_cast<std::uint16_t>(CampEdu::IncercareId),std::to_string(id)});return r;}
+    if(c.tip==TipCerereEdu::ObtineIncercare){verificaCampuri(c,{CampEdu::IncercareId});const auto i=evaluareService->obtineIncercare(s.utilizatorId,convertesteId(campObligatoriu(c,CampEdu::IncercareId),"Id-ul incercarii"));if(!i)return raspuns(c.idCerere,CodRezultatEdu::ResursaInexistenta,"Incercarea nu exista.");RaspunsEdu r=raspuns(c.idCerere,CodRezultatEdu::Succes,"Incercarea a fost citita.");r.campuri.push_back({static_cast<std::uint16_t>(CampEdu::Incercare),ProtocolEdu::codificaIncercare(incercarePublica(*i))});return r;}
+    if(c.tip==TipCerereEdu::SalveazaRaspuns){verificaCampuri(c,{CampEdu::IncercareId,CampEdu::IntrebareId,CampEdu::Raspuns});CerereRaspuns d{s.utilizatorId,convertesteId(campObligatoriu(c,CampEdu::IncercareId),"Id-ul incercarii"),convertesteId(campObligatoriu(c,CampEdu::IntrebareId),"Id-ul intrebarii"),campObligatoriu(c,CampEdu::Raspuns)};evaluareService->salveazaRaspuns(d);return raspuns(c.idCerere,CodRezultatEdu::Succes,"Raspunsul a fost salvat.");}
+    verificaCampuri(c,{CampEdu::IncercareId});const auto finala=evaluareService->finalizeazaIncercare(s.utilizatorId,convertesteId(campObligatoriu(c,CampEdu::IncercareId),"Id-ul incercarii"));RaspunsEdu r=raspuns(c.idCerere,CodRezultatEdu::Succes,"Incercarea a fost finalizata.");r.campuri.push_back({static_cast<std::uint16_t>(CampEdu::Incercare),ProtocolEdu::codificaIncercare(incercarePublica(finala))});return r;
+}
+
+RaspunsEdu ServerEdu::proceseazaCerereInscriere(const CerereEdu& c,const SesiuneClient& s){
+    verificaAutentificare(s);if(!inscriereService)throw ExceptieEdu("Serviciul de inscrieri nu este disponibil.");
+    if(c.tip==TipCerereEdu::ListeazaCursuriInscrise){verificaCampuri(c,{});RaspunsEdu r=raspuns(c.idCerere,CodRezultatEdu::Succes,"Cursurile inscrise au fost citite.");for(const auto&x:inscriereService->listeazaCursuriInscrise(s.utilizatorId))r.campuri.push_back({static_cast<std::uint16_t>(CampEdu::Curs),ProtocolEdu::codificaCurs(cursPublic(x))});return r;}
+    if(c.tip==TipCerereEdu::ListeazaStudentiCurs){verificaCampuri(c,{CampEdu::CursId});const int curs=convertesteId(campObligatoriu(c,CampEdu::CursId),"Id-ul cursului");RaspunsEdu r=raspuns(c.idCerere,CodRezultatEdu::Succes,"Studentii au fost cititi.");for(const auto&x:inscriereService->listeazaStudentiCurs(s.utilizatorId,curs))r.campuri.push_back({static_cast<std::uint16_t>(CampEdu::StudentPublic),ProtocolEdu::codificaStudent({x.id,x.email})});return r;}
+    verificaCampuri(c,{CampEdu::StudentId,CampEdu::CursId});const int curs=convertesteId(campObligatoriu(c,CampEdu::CursId),"Id-ul cursului");int student=s.utilizatorId;if(const auto x=ProtocolEdu::cautaCamp(c.campuri,CampEdu::StudentId))student=convertesteId(*x,"Id-ul studentului");
+    if(c.tip==TipCerereEdu::VerificaInscriere){RaspunsEdu r=raspuns(c.idCerere,CodRezultatEdu::Succes,"Inscrierea a fost verificata.");r.campuri.push_back({static_cast<std::uint16_t>(CampEdu::Inscris),inscriereService->verificaInscriere(s.utilizatorId,student,curs)?"1":"0"});return r;}
+    if(c.tip==TipCerereEdu::InscrieStudentLaCurs)inscriereService->inscrieStudent(s.utilizatorId,student,curs);else inscriereService->retrageStudent(s.utilizatorId,student,curs);return raspuns(c.idCerere,CodRezultatEdu::Succes,"Inscrierea a fost actualizata.");
 }
 
 bool ServerEdu::estePornit() const noexcept {

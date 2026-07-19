@@ -89,11 +89,26 @@ public:
     void stergeEvaluare(int evaluareId);
     std::vector<IntrebarePublicEdu> listeazaIntrebari(int evaluareId);
     int adaugaIntrebare(int evaluareId, const std::string& enunt,
+                        const std::string& raspunsCorect,
                         double punctajMaxim, long long ordine);
     void actualizeazaIntrebare(int evaluareId, int intrebareId,
-                               const std::string& enunt, double punctajMaxim,
+                               const std::string& enunt,
+                               const std::string& raspunsCorect,
+                               double punctajMaxim,
                                long long ordine);
     void stergeIntrebare(int evaluareId, int intrebareId);
+    int pornesteIncercare(int evaluareId);
+    std::optional<IncercarePublicEdu> obtineIncercare(int incercareId);
+    void salveazaRaspuns(int incercareId, int intrebareId,
+                         const std::string& continut);
+    IncercarePublicEdu finalizeazaIncercare(int incercareId);
+    void inscrieLaCurs(int cursId);
+    void retrageDeLaCurs(int cursId);
+    void inscrieStudentLaCurs(int studentId,int cursId);
+    void retrageStudentDeLaCurs(int studentId,int cursId);
+    std::vector<CursPublicEdu> listeazaCursuriInscrise();
+    std::vector<StudentPublicEdu> listeazaStudentiCurs(int cursId);
+    bool verificaInscriere(int studentId,int cursId);
     void deconecteaza();
 
     bool esteConectat() const noexcept;

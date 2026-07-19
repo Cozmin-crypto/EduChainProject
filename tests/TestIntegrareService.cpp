@@ -196,31 +196,31 @@ int main() {
         cerereEvaluare.numarIntrebari = 0;
         const int chestionarId = evaluari.creeazaEvaluare(cerereEvaluare);
         const int intrebare1 = evaluari.adaugaIntrebare(
-            {profesor1, chestionarId, "Intrebare initiala", 5.0, 0});
+            {profesor1, chestionarId, "Intrebare initiala", "da", 5.0, 0});
         const int intrebare2 = evaluari.adaugaIntrebare(
-            {profesor1, chestionarId, "Intrebare secunda", 5.0, 1});
+            {profesor1, chestionarId, "Intrebare secunda", "nu", 5.0, 1});
 
         verifica(evaluariRepository.actualizeazaIntrebare(
-                     intrebare1, "Text actualizat '); DROP TABLE evaluari; --", 7.5, 2),
+                     intrebare1, "Text actualizat '); DROP TABLE evaluari; --", "da", 7.5, 2),
                  "actualizarea intrebarii a esuat");
         const auto intrebariActualizate = evaluari.listeazaIntrebari(chestionarId);
         verifica(intrebariActualizate.back().enunt ==
                      "Text actualizat '); DROP TABLE evaluari; --",
                  "textul SQL al intrebarii nu a fost tratat literal");
         verifica(!evaluariRepository.actualizeazaIntrebare(
-                     999999, "Inexistenta", 1.0, 3),
+                     999999, "Inexistenta", "da", 1.0, 3),
                  "ID-ul inexistent nu a returnat false");
         verifica(aruncaExceptieEdu([&] {
-                     evaluariRepository.actualizeazaIntrebare(intrebare1, "", 1.0, 3);
+                     evaluariRepository.actualizeazaIntrebare(intrebare1, "", "da", 1.0, 3);
                  }), "enuntul invalid nu a fost respins");
         verifica(aruncaExceptieEdu([&] {
-                     evaluariRepository.actualizeazaIntrebare(intrebare1, "Valid", -1.0, 3);
+                     evaluariRepository.actualizeazaIntrebare(intrebare1, "Valid", "da", -1.0, 3);
                  }), "punctajul invalid nu a fost respins");
         verifica(aruncaExceptieEdu([&] {
-                     evaluariRepository.actualizeazaIntrebare(intrebare1, "Valid", 1.0, -1);
+                     evaluariRepository.actualizeazaIntrebare(intrebare1, "Valid", "da", 1.0, -1);
                  }), "ordinea invalida nu a fost respinsa");
         verifica(aruncaExceptieEdu([&] {
-                     evaluariRepository.actualizeazaIntrebare(intrebare1, "Conflict", 1.0, 1);
+                     evaluariRepository.actualizeazaIntrebare(intrebare1, "Conflict", "da", 1.0, 1);
                  }), "conflictul UNIQUE nu a fost propagat");
         verifica(evaluariRepository.listeazaIntrebari(chestionarId).size() == 2,
                  "conflictul UNIQUE a alterat intrebarile");
@@ -230,6 +230,7 @@ int main() {
         cerereActualizareIntrebare.chestionarId = chestionarId;
         cerereActualizareIntrebare.intrebareId = intrebare1;
         cerereActualizareIntrebare.enunt = "Intrebare actualizata prin serviciu";
+        cerereActualizareIntrebare.raspunsCorect = "Raspuns student";
         cerereActualizareIntrebare.punctajMaxim = 8.0;
         cerereActualizareIntrebare.ordine = 2;
         verifica(evaluari.actualizeazaIntrebare(cerereActualizareIntrebare),
@@ -249,10 +250,10 @@ int main() {
         altaEvaluare.nume = "Alt chestionar";
         const int altChestionarId = evaluari.creeazaEvaluare(altaEvaluare);
         const int intrebareStraina = evaluari.adaugaIntrebare(
-            {profesor1, altChestionarId, "Intrebare straina", 2.0, 0});
+            {profesor1, altChestionarId, "Intrebare straina", "strain", 2.0, 0});
         verifica(aruncaExceptieEdu([&] {
                      evaluari.salveazaRaspuns(
-                         {student, incercareId, intrebareStraina, "Raspuns invalid", 1.0});
+                         {student, incercareId, intrebareStraina, "Raspuns invalid"});
                  }), "studentul a raspuns unei intrebari din alta evaluare");
         verifica(evaluariRepository.listeazaRaspunsuri(incercareId).empty(),
                  "raspunsul invalid a fost persistat partial");
@@ -260,11 +261,11 @@ int main() {
                  "chestionarul auxiliar nu a fost sters");
 
         evaluari.salveazaRaspuns(
-            {student, incercareId, intrebare1, "Raspuns student", 8.0});
-        verifica(evaluari.finalizeazaIncercare(student, incercareId, 8.0, 8.0),
-                 "studentul nu si-a finalizat incercarea");
+            {student, incercareId, intrebare1, "Raspuns student"});
+        const auto finalizata = evaluari.finalizeazaIncercare(student, incercareId);
+        verifica(finalizata.finalizataLa.has_value(), "studentul nu si-a finalizat incercarea");
         const auto rezultat = evaluari.obtineIncercare(student, incercareId);
-        verifica(rezultat->finalizataLa.has_value() && rezultat->notaFinala == 8.0,
+        verifica(rezultat->finalizataLa.has_value() && rezultat->notaFinala == 6.15,
                  "rezultatul incercarii este incorect");
         verifica(evaluari.listeazaDupaCurs(cursProfesor1).size() == 1,
                  "evaluarea nu este listata");

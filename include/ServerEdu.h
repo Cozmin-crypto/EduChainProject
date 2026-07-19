@@ -13,6 +13,7 @@ class AutentificareService;
 class CursService;
 class LectieService;
 class EvaluareService;
+class InscriereService;
 
 class ServerEdu : public ManagerSocket {
 private:
@@ -21,6 +22,7 @@ private:
     CursService* cursService{};
     LectieService* lectieService{};
     EvaluareService* evaluareService{};
+    InscriereService* inscriereService{};
     SocketWindows socketClientActiv;
     mutable std::mutex mutexSocketClient;
 
@@ -54,6 +56,10 @@ private:
                                         const SesiuneClient& sesiune);
     RaspunsEdu proceseazaCerereIntrebare(const CerereEdu& cerere,
                                          const SesiuneClient& sesiune);
+    RaspunsEdu proceseazaCerereIncercare(const CerereEdu& cerere,
+                                         const SesiuneClient& sesiune);
+    RaspunsEdu proceseazaCerereInscriere(const CerereEdu& cerere,
+                                         const SesiuneClient& sesiune);
     void inchideClientActiv() noexcept;
 
 public:
@@ -63,6 +69,9 @@ public:
               CursService& cursService,
               std::uint16_t port = 0,
               std::string adresaIp = "127.0.0.1");
+    ServerEdu(AutentificareService&,CursService&,LectieService&,EvaluareService&,
+              InscriereService&,std::uint16_t port=0,
+              std::string adresaIp="127.0.0.1");
     ServerEdu(AutentificareService& autentificareService,
               CursService& cursService,
               LectieService& lectieService,

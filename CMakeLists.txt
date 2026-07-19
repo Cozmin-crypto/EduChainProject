@@ -40,6 +40,8 @@ add_library(EduChainCore STATIC
     include/ExamenFinal.h
     include/ExceptieEdu.h
     include/INodRetea.h
+    include/InscriereRepository.h
+    include/InscriereService.h
     include/IUtilizator.h
     include/Jurnalizare.h
     include/Lectie.h
@@ -71,6 +73,8 @@ add_library(EduChainCore STATIC
     src/ExamenFinal.cpp
     src/ExceptieEdu.cpp
     src/INodRetea.cpp
+    src/InscriereRepository.cpp
+    src/InscriereService.cpp
     src/IUtilizator.cpp
     src/Jurnalizare.cpp
     src/Lectie.cpp
@@ -132,3 +136,9 @@ educhain_add_test(TestIntegrareReteaLectii
     tests/TestIntegrareReteaLectii.cpp)
 educhain_add_test(TestIntegrareReteaEvaluari
     tests/TestIntegrareReteaEvaluari.cpp)
+educhain_add_test(TestIntegrareReteaIncercari
+    tests/TestIntegrareReteaIncercari.cpp)
+educhain_add_test(TestIntegrareInscrieri
+    tests/TestIntegrareInscrieri.cpp)
+educhain_add_test(TestIntegrareReteaInscrieri
+    tests/TestIntegrareReteaInscrieri.cpp)

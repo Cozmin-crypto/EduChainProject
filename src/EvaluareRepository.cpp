@@ -141,14 +141,15 @@ EvaluareInregistrare transformaEvaluare(const std::vector<std::string>& rand) {
 }
 
 IntrebareChestionarInregistrare transformaIntrebare(const std::vector<std::string>& rand) {
-    if (rand.size() != 5) {
+    if (rand.size() != 6) {
         throw ExceptieEdu("Randul intrebarii nu contine numarul asteptat de coloane.");
     }
     return {convertesteId(rand[0], "Id-ul intrebarii"),
             convertesteId(rand[1], "Id-ul chestionarului"),
             rand[2],
-            convertesteReal(rand[3], "Punctajul maxim"),
-            convertesteIntregNenegativ(rand[4], "Ordinea intrebarii")};
+            rand[3],
+            convertesteReal(rand[4], "Punctajul maxim"),
+            convertesteIntregNenegativ(rand[5], "Ordinea intrebarii")};
 }
 
 IncercareEvaluareInregistrare transformaIncercare(const std::vector<std::string>& rand) {
@@ -369,11 +370,12 @@ std::vector<EvaluareInregistrare> EvaluareRepository::listeazaDupaCurs(int cursI
 
 int EvaluareRepository::adaugaIntrebare(int chestionarId,
                                         const std::string& enunt,
+                                        const std::string& raspunsCorect,
                                         double punctajMaxim,
                                         long long ordine) {
     valideazaChestionarExistent(chestionarId);
-    if (enunt.empty()) {
-        throw ExceptieEdu("Enuntul intrebarii nu poate fi gol.");
+    if (enunt.empty() || raspunsCorect.find_first_not_of(" \t\r\n") == std::string::npos) {
+        throw ExceptieEdu("Enuntul si raspunsul corect nu pot fi goale.");
     }
     if (!std::isfinite(punctajMaxim) || punctajMaxim < 0.0 || ordine < 0) {
         throw ExceptieEdu("Punctajul si ordinea intrebarii trebuie sa fie nenegative.");
@@ -382,8 +384,8 @@ int EvaluareRepository::adaugaIntrebare(int chestionarId,
     try {
         conector.executaInterogareParametrizata(
             "INSERT INTO intrebari_chestionar "
-            "(chestionar_id, enunt, punctaj_maxim, ordine) VALUES (?, ?, ?, ?);",
-            {std::to_string(chestionarId), enunt, convertesteText(punctajMaxim),
+            "(chestionar_id, enunt, raspuns_corect, punctaj_maxim, ordine) VALUES (?, ?, ?, ?, ?);",
+            {std::to_string(chestionarId), enunt, raspunsCorect, convertesteText(punctajMaxim),
              std::to_string(ordine)});
         const int id = citesteUltimulId(conector, "Id-ul intrebarii");
         conector.executaInterogareParametrizata(
@@ -399,19 +401,21 @@ int EvaluareRepository::adaugaIntrebare(int chestionarId,
 
 bool EvaluareRepository::actualizeazaIntrebare(int intrebareId,
                                                const std::string& enunt,
+                                               const std::string& raspunsCorect,
                                                double punctajMaxim,
                                                long long ordine) {
     valideazaId(intrebareId, "Id-ul intrebarii");
-    if (enunt.empty()) {
-        throw ExceptieEdu("Enuntul intrebarii nu poate fi gol.");
+    if (enunt.empty() || raspunsCorect.find_first_not_of(" \t\r\n") == std::string::npos) {
+        throw ExceptieEdu("Enuntul si raspunsul corect nu pot fi goale.");
     }
     if (!std::isfinite(punctajMaxim) || punctajMaxim < 0.0 || ordine < 0) {
         throw ExceptieEdu("Punctajul si ordinea intrebarii trebuie sa fie nenegative.");
     }
     return conector.executaInterogareParametrizata(
                "UPDATE intrebari_chestionar "
-               "SET enunt = ?, punctaj_maxim = ?, ordine = ? WHERE id = ?;",
+               "SET enunt = ?, raspuns_corect = ?, punctaj_maxim = ?, ordine = ? WHERE id = ?;",
                {enunt,
+                raspunsCorect,
                 convertesteText(punctajMaxim),
                 std::to_string(ordine),
                 std::to_string(intrebareId)}) > 0;
@@ -447,10 +451,20 @@ std::vector<IntrebareChestionarInregistrare> EvaluareRepository::listeazaIntreba
     valideazaChestionarExistent(chestionarId);
     return transformaToate<IntrebareChestionarInregistrare>(
         conector.executaSelectParametrizat(
-            "SELECT id, chestionar_id, enunt, punctaj_maxim, ordine "
+            "SELECT id, chestionar_id, enunt, raspuns_corect, punctaj_maxim, ordine "
             "FROM intrebari_chestionar WHERE chestionar_id = ? ORDER BY ordine;",
             {std::to_string(chestionarId)}),
         transformaIntrebare);
+}
+
+std::optional<IntrebareChestionarInregistrare>
+EvaluareRepository::cautaIntrebareDupaId(int intrebareId) {
+    valideazaId(intrebareId, "Id-ul intrebarii");
+    const auto randuri = conector.executaSelectParametrizat(
+        "SELECT id, chestionar_id, enunt, raspuns_corect, punctaj_maxim, ordine "
+        "FROM intrebari_chestionar WHERE id = ?;", {std::to_string(intrebareId)});
+    if (randuri.empty()) return std::nullopt;
+    return transformaIntrebare(randuri.front());
 }
 
 int EvaluareRepository::adaugaIncercare(int evaluareId, int studentId) {
@@ -475,7 +489,7 @@ bool EvaluareRepository::finalizeazaIncercare(int incercareId,
     }
     return conector.executaInterogareParametrizata(
                "UPDATE incercari_evaluare SET finalizata_la = CURRENT_TIMESTAMP, "
-               "scor_brut = ?, nota_finala = ? WHERE id = ?;",
+               "scor_brut = ?, nota_finala = ? WHERE id = ? AND finalizata_la IS NULL;",
                {convertesteText(scorBrut), convertesteText(notaFinala),
                 std::to_string(incercareId)}) > 0;
 }

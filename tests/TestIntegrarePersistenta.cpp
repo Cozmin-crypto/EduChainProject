@@ -120,6 +120,7 @@ int main() {
         const int intrebareId = evaluari.adaugaIntrebare(
             chestionarId,
             "Ce afiseaza expresia cout << \"' OR 1=1 --\"?",
+            "Afiseaza literal textul ' OR 1=1 --",
             10.0,
             0);
         verifica(evaluari.listeazaIntrebari(chestionarId).size() == 1,
