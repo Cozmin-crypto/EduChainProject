@@ -121,3 +121,9 @@ std::optional<UtilizatorInregistrare> UtilizatorRepository::cautaDupaEmail(
     }
     return transformaRandul(rezultate.front());
 }
+
+int UtilizatorRepository::inregistreazaStudent(const std::string& email,const std::string& parola){
+    conector.executaInterogareParametrizata("BEGIN TRANSACTION;",{});
+    try { const int id=adaugaUtilizator(email,parola,"student"); conector.executaInterogareParametrizata("INSERT INTO studenti (utilizator_id) VALUES (?);",{std::to_string(id)}); conector.executaInterogareParametrizata("COMMIT;",{}); return id; }
+    catch (...) { try { conector.executaInterogareParametrizata("ROLLBACK;",{}); } catch (...) {} throw; }
+}

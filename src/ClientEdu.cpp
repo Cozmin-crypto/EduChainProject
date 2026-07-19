@@ -144,6 +144,8 @@ RaspunsEdu ClientEdu::autentifica(const std::string& email,
     return raspuns;
 }
 
+int ClientEdu::inregistreazaStudent(const std::string& n,const std::string& p,const std::string& e,const std::string& parola){CerereEdu c;c.tip=TipCerereEdu::InregistrareStudent;c.campuri={{static_cast<std::uint16_t>(CampEdu::Nume),n},{static_cast<std::uint16_t>(CampEdu::Prenume),p},{static_cast<std::uint16_t>(CampEdu::Email),e},{static_cast<std::uint16_t>(CampEdu::Parola),parola}};const auto r=executaCerere(std::move(c));verificaSucces(r);const auto id=ProtocolEdu::cautaCamp(r.campuri,CampEdu::UtilizatorId);if(!id)throw ExceptieEdu("Raspunsul inregistrarii este incomplet.");return convertesteId(*id,"Id-ul utilizatorului");}
+
 void ClientEdu::verificaSucces(const RaspunsEdu& raspuns) {
     if (raspuns.cod != CodRezultatEdu::Succes) {
         throw ExceptieEdu(raspuns.mesajPublic);

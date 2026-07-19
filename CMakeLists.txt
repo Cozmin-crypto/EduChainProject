@@ -106,8 +106,20 @@ target_link_libraries(EduChainCore
         Ws2_32
 )
 
+add_executable(EduChainServer
+    app/server_main.cpp
+)
+target_link_libraries(EduChainServer PRIVATE EduChainCore)
+
+add_executable(EduChainClient
+    app/client_main.cpp
+)
+target_link_libraries(EduChainClient PRIVATE EduChainCore)
+
 if(MSVC)
     target_compile_options(EduChainCore PRIVATE /W4 /permissive-)
+    target_compile_options(EduChainServer PRIVATE /W4 /permissive-)
+    target_compile_options(EduChainClient PRIVATE /W4 /permissive-)
 endif()
 
 function(educhain_add_test target source)

@@ -31,6 +31,7 @@ private:
                                 bool& solicitaDeconectare);
     RaspunsEdu proceseazaAutentificare(const CerereEdu& cerere,
                                        SesiuneClient& sesiune);
+    RaspunsEdu proceseazaInregistrareStudent(const CerereEdu& cerere);
     RaspunsEdu proceseazaListeazaCursuri(const CerereEdu& cerere,
                                          const SesiuneClient& sesiune);
     RaspunsEdu proceseazaObtineCurs(const CerereEdu& cerere,

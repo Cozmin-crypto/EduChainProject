@@ -27,3 +27,6 @@ RezultatAutentificare AutentificareService::autentifica(
     return {true, StareAutentificare::Succes, utilizator->id,
             utilizator->email, utilizator->rol, "Autentificare reusita."};
 }
+
+int AutentificareService::inregistreazaStudent(const std::string& n,const std::string& p,const std::string& e,const std::string& parola){
+ if(n.empty()||p.empty())throw ExceptieEdu("Numele si prenumele sunt obligatorii."); if(e.empty()||e.find('@')==std::string::npos||e.find('.')==std::string::npos)throw ExceptieEdu("Email invalid."); if(parola.size()<6)throw ExceptieEdu("Parola trebuie sa aiba cel putin 6 caractere."); if(utilizatori.cautaDupaEmail(e))throw ExceptieEdu("Email deja utilizat."); return utilizatori.inregistreazaStudent(e,parola); }

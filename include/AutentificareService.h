@@ -28,4 +28,5 @@ public:
     explicit AutentificareService(UtilizatorRepository& utilizatori);
     RezultatAutentificare autentifica(const std::string& email,
                                       const std::string& parola);
+    int inregistreazaStudent(const std::string&,const std::string&,const std::string&,const std::string&);
 };

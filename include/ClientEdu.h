@@ -57,6 +57,7 @@ public:
     RaspunsEdu executaCerere(CerereEdu cerere);
 
     RaspunsEdu autentifica(const std::string& email, const std::string& parola);
+    int inregistreazaStudent(const std::string&,const std::string&,const std::string&,const std::string&);
     std::vector<CursPublicEdu> listeazaCursuri();
     std::optional<CursPublicEdu> obtineCurs(int cursId);
     int creeazaCurs(const std::string& nume,
