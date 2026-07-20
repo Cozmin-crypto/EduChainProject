@@ -8,5 +8,5 @@ protected:
 
 public:
     virtual ~Lectie() = default;
-    virtual void incarcaContinut();
+    virtual void incarcaContinut() = 0;
 };

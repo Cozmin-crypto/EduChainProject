@@ -178,6 +178,7 @@ CREATE TABLE intrebari_chestionar (
     id                  INTEGER PRIMARY KEY,
     chestionar_id       INTEGER NOT NULL,
     enunt               TEXT NOT NULL,
+    raspuns_corect      TEXT NOT NULL CHECK (length(trim(raspuns_corect)) > 0),
     punctaj_maxim       REAL NOT NULL CHECK (punctaj_maxim >= 0.0),
     ordine              INTEGER NOT NULL CHECK (ordine >= 0),
     FOREIGN KEY (chestionar_id) REFERENCES chestionare(evaluare_id) ON DELETE CASCADE,

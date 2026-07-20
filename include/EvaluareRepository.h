@@ -23,6 +23,7 @@ struct IntrebareChestionarInregistrare {
     int id{};
     int chestionarId{};
     std::string enunt;
+    std::string raspunsCorect;
     double punctajMaxim{};
     long long ordine{};
 };
@@ -79,14 +80,17 @@ public:
 
     int adaugaIntrebare(int chestionarId,
                         const std::string& enunt,
+                        const std::string& raspunsCorect,
                         double punctajMaxim,
                         long long ordine);
     bool actualizeazaIntrebare(int intrebareId,
                                const std::string& enunt,
+                               const std::string& raspunsCorect,
                                double punctajMaxim,
                                long long ordine);
     bool stergeIntrebare(int intrebareId);
     std::vector<IntrebareChestionarInregistrare> listeazaIntrebari(int chestionarId);
+    std::optional<IntrebareChestionarInregistrare> cautaIntrebareDupaId(int intrebareId);
 
     int adaugaIncercare(int evaluareId, int studentId);
     bool finalizeazaIncercare(int incercareId, double scorBrut, double notaFinala);

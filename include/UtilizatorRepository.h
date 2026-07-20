@@ -31,4 +31,8 @@ public:
     bool stergeUtilizator(int id);
     std::optional<UtilizatorInregistrare> cautaDupaId(int id);
     std::optional<UtilizatorInregistrare> cautaDupaEmail(const std::string& email);
+    int inregistreazaUtilizator(const std::string& email,
+                               const std::string& parola,
+                               const std::string& rol);
+    int inregistreazaStudent(const std::string& email, const std::string& parola);
 };

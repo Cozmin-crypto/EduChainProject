@@ -2,11 +2,13 @@
 
 #include "ExceptieEdu.h"
 #include "UtilizatorRepository.h"
+#include "InscriereService.h"
 
 CursService::CursService(CursRepository& cursuri,
                          UtilizatorRepository& utilizatori)
     : cursuri(cursuri), utilizatori(utilizatori), reguli(utilizatori) {
 }
+CursService::CursService(CursRepository& c,UtilizatorRepository& u,InscriereService& i):cursuri(c),utilizatori(u),reguli(u),inscrieri(&i){}
 
 CursInregistrare CursService::obtineCursExistent(int cursId) {
     const auto curs = cursuri.cautaDupaId(cursId);
@@ -15,6 +17,7 @@ CursInregistrare CursService::obtineCursExistent(int cursId) {
     }
     return *curs;
 }
+std::vector<CursInregistrare> CursService::listeazaCursuri(int actorId){const auto actor=reguli.obtineActor(actorId);if(actor.rol=="student"){if(!inscrieri)throw ExceptieEdu("Serviciul de inscrieri nu este disponibil.");return inscrieri->listeazaCursuriInscrise(actorId);}return cursuri.listeazaCursuri();}
 
 std::vector<CursInregistrare> CursService::listeazaCursuri() {
     return cursuri.listeazaCursuri();
@@ -23,6 +26,7 @@ std::vector<CursInregistrare> CursService::listeazaCursuri() {
 std::optional<CursInregistrare> CursService::obtineCurs(int cursId) {
     return cursuri.cautaDupaId(cursId);
 }
+std::optional<CursInregistrare> CursService::obtineCurs(int actorId,int cursId){const auto c=cursuri.cautaDupaId(cursId);if(c){if(!inscrieri)throw ExceptieEdu("Serviciul de inscrieri nu este disponibil.");inscrieri->verificaAccesStudentLaCurs(actorId,cursId);}return c;}
 
 int CursService::creeazaCurs(const CerereCreareCurs& cerere) {
     const auto actor = reguli.obtineActor(cerere.actorId);
