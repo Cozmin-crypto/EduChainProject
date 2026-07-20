@@ -1,0 +1,15 @@
+{
+    "cmake.sourceDirectory": "${workspaceFolder}",
+    "cmake.buildDirectory": "${workspaceFolder}/build-qt",
+    "cmake.generator": "Visual Studio 17 2022",
+    "cmake.configureArgs": [
+        "-A",
+        "x64"
+    ],
+    "cmake.configureSettings": {
+        "EDUCHAIN_BUILD_QT": "ON",
+        "CMAKE_PREFIX_PATH": "D:/Qt/6.11.1/msvc2022_64"
+    },
+    "cmake.buildTarget": "EduChainQtClient",
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools"
+}
