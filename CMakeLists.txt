@@ -137,6 +137,15 @@ if(EDUCHAIN_BUILD_QT)
         gui/RegisterWindow.h
         gui/RegisterWindow.cpp
         gui/RegisterWindow.ui
+        gui/StudentDashboard.h
+        gui/StudentDashboard.cpp
+        gui/StudentDashboard.ui
+        gui/ProfessorDashboard.h
+        gui/ProfessorDashboard.cpp
+        gui/ProfessorDashboard.ui
+        gui/AdminDashboard.h
+        gui/AdminDashboard.cpp
+        gui/AdminDashboard.ui
     )
 
     target_link_libraries(EduChainQtClient

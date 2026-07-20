@@ -9,11 +9,10 @@
     <item><widget class="QLabel" name="userLabel"><property name="text"><string>Utilizator:</string></property></widget></item>
     <item><widget class="QLabel" name="roleLabel"><property name="text"><string>Rol:</string></property></widget></item>
     <item><widget class="QLabel" name="connectionLabel"><property name="text"><string>Neconectat</string></property></widget></item>
-    <item><widget class="QLabel" name="placeholderLabel"><property name="text"><string>Funcționalitățile specifice rolului vor fi implementate în pasul următor.</string></property><property name="alignment"><set>Qt::AlignmentFlag::AlignCenter</set></property></widget></item>
-    <item><spacer name="verticalSpacer"><property name="orientation"><enum>Qt::Orientation::Vertical</enum></property><property name="sizeHint" stdset="0"><size><width>20</width><height>40</height></size></property></spacer></item>
+    <item><widget class="QStackedWidget" name="dashboardStack"/></item>
     <item><layout class="QHBoxLayout" name="buttonsLayout">
      <item><widget class="QPushButton" name="logoutButton"><property name="text"><string>Logout</string></property></widget></item>
-     <item><widget class="QPushButton" name="closeButton"><property name="text"><string>Închide</string></property></widget></item>
+     <item><widget class="QPushButton" name="closeButton"><property name="text"><string>Închide aplicația</string></property></widget></item>
     </layout></item>
    </layout>
   </widget>
