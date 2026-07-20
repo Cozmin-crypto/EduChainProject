@@ -2,6 +2,13 @@ cmake_minimum_required(VERSION 3.20)
 
 project(EduChain LANGUAGES CXX)
 
+option(EDUCHAIN_BUILD_QT "Build the Qt Widgets client" OFF)
+
+if(EDUCHAIN_BUILD_QT)
+    find_package(Qt6 REQUIRED COMPONENTS Widgets)
+    qt_standard_project_setup()
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -116,10 +123,46 @@ add_executable(EduChainClient
 )
 target_link_libraries(EduChainClient PRIVATE EduChainCore)
 
+if(EDUCHAIN_BUILD_QT)
+    qt_add_executable(EduChainQtClient
+        gui/qt_main.cpp
+        gui/ApplicationContext.h
+        gui/ApplicationContext.cpp
+        gui/LoginWindow.h
+        gui/LoginWindow.cpp
+        gui/LoginWindow.ui
+        gui/MainWindow.h
+        gui/MainWindow.cpp
+        gui/MainWindow.ui
+        gui/RegisterWindow.h
+        gui/RegisterWindow.cpp
+        gui/RegisterWindow.ui
+    )
+
+    target_link_libraries(EduChainQtClient
+        PRIVATE
+            Qt6::Widgets
+            EduChainCore
+    )
+
+    target_include_directories(EduChainQtClient
+        PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/gui
+    )
+
+    set_target_properties(EduChainQtClient PROPERTIES
+        WIN32_EXECUTABLE ON
+    )
+endif()
+
 if(MSVC)
     target_compile_options(EduChainCore PRIVATE /W4 /permissive-)
     target_compile_options(EduChainServer PRIVATE /W4 /permissive-)
     target_compile_options(EduChainClient PRIVATE /W4 /permissive-)
+    if(EDUCHAIN_BUILD_QT)
+        target_compile_options(EduChainQtClient PRIVATE /W4 /permissive-)
+    endif()
 endif()
 
 function(educhain_add_test target source)
