@@ -208,3 +208,5 @@ educhain_add_test(TestIntegrareReteaInscrieri
     tests/TestIntegrareReteaInscrieri.cpp)
 educhain_add_test(TestEndToEndEduChain
     tests/TestEndToEndEduChain.cpp)
+educhain_add_test(TestCursuriDisponibile
+    tests/TestCursuriDisponibile.cpp)

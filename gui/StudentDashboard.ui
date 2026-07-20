@@ -21,8 +21,21 @@
     </layout></item>
     <item><widget class="QStackedWidget" name="pagesStack">
      <widget class="QWidget" name="homePage"><layout class="QVBoxLayout" name="homeLayout"><item><widget class="QLabel" name="homeLabel"><property name="text"><string>Funcționalitățile Studentului vor fi implementate în pasul următor.</string></property><property name="alignment"><set>Qt::AlignmentFlag::AlignCenter</set></property><property name="wordWrap"><bool>true</bool></property></widget></item></layout></widget>
-     <widget class="QWidget" name="myCoursesPage"><layout class="QVBoxLayout" name="myCoursesLayout"><item><widget class="QLabel" name="myCoursesLabel"><property name="text"><string>Cursurile înscrise vor fi încărcate într-un pas ulterior.</string></property><property name="alignment"><set>Qt::AlignmentFlag::AlignCenter</set></property><property name="wordWrap"><bool>true</bool></property></widget></item></layout></widget>
-     <widget class="QWidget" name="availableCoursesPage"><layout class="QVBoxLayout" name="availableCoursesLayout"><item><widget class="QLabel" name="availableCoursesLabel"><property name="text"><string>Cursurile disponibile vor fi implementate într-un pas ulterior.</string></property><property name="alignment"><set>Qt::AlignmentFlag::AlignCenter</set></property><property name="wordWrap"><bool>true</bool></property></widget></item></layout></widget>
+     <widget class="QWidget" name="myCoursesPage"><layout class="QVBoxLayout" name="myCoursesLayout">
+      <item><widget class="QLabel" name="myCoursesTitleLabel"><property name="text"><string>Cursurile mele</string></property></widget></item>
+      <item><widget class="QListWidget" name="myCoursesList"/></item>
+      <item><widget class="QLabel" name="myCoursesStatusLabel"><property name="text"><string/></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+      <item><widget class="QPushButton" name="refreshMyCoursesButton"><property name="text"><string>Reîmprospătează</string></property></widget></item>
+     </layout></widget>
+     <widget class="QWidget" name="availableCoursesPage"><layout class="QVBoxLayout" name="availableCoursesLayout">
+      <item><widget class="QLabel" name="availableCoursesTitleLabel"><property name="text"><string>Cursuri disponibile</string></property></widget></item>
+      <item><widget class="QListWidget" name="availableCoursesList"><property name="selectionMode"><enum>QAbstractItemView::SelectionMode::SingleSelection</enum></property></widget></item>
+      <item><widget class="QLabel" name="availableCoursesStatusLabel"><property name="text"><string/></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+      <item><layout class="QHBoxLayout" name="availableActionsLayout">
+       <item><widget class="QPushButton" name="refreshAvailableCoursesButton"><property name="text"><string>Reîmprospătează</string></property></widget></item>
+       <item><widget class="QPushButton" name="enrollButton"><property name="text"><string>Înscrie-te</string></property><property name="enabled"><bool>false</bool></property></widget></item>
+      </layout></item>
+     </layout></widget>
      <widget class="QWidget" name="lessonsPage"><layout class="QVBoxLayout" name="lessonsLayout"><item><widget class="QLabel" name="lessonsLabel"><property name="text"><string>Lecțiile vor fi implementate într-un pas ulterior.</string></property><property name="alignment"><set>Qt::AlignmentFlag::AlignCenter</set></property></widget></item></layout></widget>
      <widget class="QWidget" name="evaluationsPage"><layout class="QVBoxLayout" name="evaluationsLayout"><item><widget class="QLabel" name="evaluationsLabel"><property name="text"><string>Evaluările vor fi implementate într-un pas ulterior.</string></property><property name="alignment"><set>Qt::AlignmentFlag::AlignCenter</set></property></widget></item></layout></widget>
      <widget class="QWidget" name="resultsPage"><layout class="QVBoxLayout" name="resultsLayout"><item><widget class="QLabel" name="resultsLabel"><property name="text"><string>Rezultatele vor fi implementate într-un pas ulterior.</string></property><property name="alignment"><set>Qt::AlignmentFlag::AlignCenter</set></property></widget></item></layout></widget>

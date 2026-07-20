@@ -111,6 +111,7 @@ public:
     void inscrieStudentLaCurs(int studentId,int cursId);
     void retrageStudentDeLaCurs(int studentId,int cursId);
     std::vector<CursPublicEdu> listeazaCursuriInscrise();
+    std::vector<CursPublicEdu> listeazaCursuriDisponibile();
     std::vector<StudentPublicEdu> listeazaStudentiCurs(int cursId);
     bool verificaInscriere(int studentId,int cursId);
     void deconecteaza();
