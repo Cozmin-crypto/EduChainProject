@@ -134,6 +134,9 @@ if(EDUCHAIN_BUILD_QT)
         gui/MainWindow.h
         gui/MainWindow.cpp
         gui/MainWindow.ui
+        gui/RegisterWindow.h
+        gui/RegisterWindow.cpp
+        gui/RegisterWindow.ui
     )
 
     target_link_libraries(EduChainQtClient

@@ -20,7 +20,7 @@ public:
 
 private slots:
     void autentifica();
-    void afiseazaMesajRegisterNeimplementat();
+    void deschideInregistrare();
     void reconecteaza();
 
 private:

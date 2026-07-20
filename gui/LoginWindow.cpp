@@ -5,10 +5,10 @@
 #include "ExceptieEdu.h"
 #include "MainWindow.h"
 #include "ProtocolEdu.h"
+#include "RegisterWindow.h"
 #include "ui_LoginWindow.h"
 
 #include <QLineEdit>
-#include <QMessageBox>
 #include <QPushButton>
 #include <QString>
 
@@ -41,7 +41,7 @@ LoginWindow::LoginWindow(std::shared_ptr<ApplicationContext> context,
     connect(ui_->loginButton, &QPushButton::clicked,
             this, &LoginWindow::autentifica);
     connect(ui_->registerButton, &QPushButton::clicked,
-            this, &LoginWindow::afiseazaMesajRegisterNeimplementat);
+            this, &LoginWindow::deschideInregistrare);
     connect(ui_->exitButton, &QPushButton::clicked, this, &QWidget::close);
     connect(ui_->passwordLineEdit, &QLineEdit::returnPressed,
             this, &LoginWindow::autentifica);
@@ -101,10 +101,18 @@ void LoginWindow::autentifica() {
     ui_->loginButton->setEnabled(true);
 }
 
-void LoginWindow::afiseazaMesajRegisterNeimplementat() {
-    QMessageBox::information(
-        this, "EduChain",
-        QString::fromUtf8(u8"Înregistrarea va fi implementată într-un pas ulterior."));
+void LoginWindow::deschideInregistrare() {
+    ui_->registerButton->setEnabled(false);
+    RegisterWindow fereastra(context_, this);
+    if (fereastra.exec() == QDialog::Accepted) {
+        ui_->emailLineEdit->setText(fereastra.emailInregistrat());
+        ui_->passwordLineEdit->clear();
+        ui_->passwordLineEdit->setFocus();
+        ui_->statusLabel->setText(
+            QString::fromUtf8(u8"Cont creat cu succes. Te poți autentifica."));
+    }
+    ui_->registerButton->setEnabled(true);
+    actualizeazaStareConexiune();
 }
 
 void LoginWindow::reconecteaza() {
