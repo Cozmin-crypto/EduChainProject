@@ -36,7 +36,27 @@
        <item><widget class="QPushButton" name="enrollButton"><property name="text"><string>Înscrie-te</string></property><property name="enabled"><bool>false</bool></property></widget></item>
       </layout></item>
      </layout></widget>
-     <widget class="QWidget" name="lessonsPage"><layout class="QVBoxLayout" name="lessonsLayout"><item><widget class="QLabel" name="lessonsLabel"><property name="text"><string>Lecțiile vor fi implementate într-un pas ulterior.</string></property><property name="alignment"><set>Qt::AlignmentFlag::AlignCenter</set></property></widget></item></layout></widget>
+     <widget class="QWidget" name="lessonsPage"><layout class="QVBoxLayout" name="lessonsLayout">
+      <item><widget class="QLabel" name="lessonsTitleLabel"><property name="text"><string>Lecțiile cursului</string></property></widget></item>
+      <item><layout class="QHBoxLayout" name="lessonCourseLayout">
+       <item><widget class="QLabel" name="lessonCourseLabel"><property name="text"><string>Curs:</string></property></widget></item>
+       <item><widget class="QComboBox" name="lessonCourseCombo"/></item>
+       <item><widget class="QPushButton" name="refreshLessonCoursesButton"><property name="text"><string>Reîmprospătează cursurile</string></property></widget></item>
+      </layout></item>
+      <item><widget class="QLabel" name="lessonCoursesStatusLabel"><property name="text"><string/></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+      <item><widget class="QSplitter" name="lessonsSplitter"><property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property>
+       <widget class="QWidget" name="lessonListPanel"><layout class="QVBoxLayout" name="lessonListLayout">
+        <item><widget class="QListWidget" name="lessonsList"><property name="selectionMode"><enum>QAbstractItemView::SelectionMode::SingleSelection</enum></property></widget></item>
+        <item><widget class="QLabel" name="lessonsStatusLabel"><property name="text"><string>Selectează un curs pentru a vedea lecțiile.</string></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+        <item><widget class="QPushButton" name="refreshLessonsButton"><property name="text"><string>Reîmprospătează lecțiile</string></property></widget></item>
+       </layout></widget>
+       <widget class="QWidget" name="lessonDetailPanel"><layout class="QVBoxLayout" name="lessonDetailLayout">
+        <item><widget class="QLabel" name="lessonTitleLabel"><property name="text"><string>Nicio lecție selectată</string></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+        <item><widget class="QLabel" name="lessonMetadataLabel"><property name="text"><string/></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+        <item><widget class="QTextBrowser" name="lessonContent"><property name="placeholderText"><string>Conținutul lecției va apărea aici.</string></property></widget></item>
+       </layout></widget>
+      </widget></item>
+     </layout></widget>
      <widget class="QWidget" name="evaluationsPage"><layout class="QVBoxLayout" name="evaluationsLayout"><item><widget class="QLabel" name="evaluationsLabel"><property name="text"><string>Evaluările vor fi implementate într-un pas ulterior.</string></property><property name="alignment"><set>Qt::AlignmentFlag::AlignCenter</set></property></widget></item></layout></widget>
      <widget class="QWidget" name="resultsPage"><layout class="QVBoxLayout" name="resultsLayout"><item><widget class="QLabel" name="resultsLabel"><property name="text"><string>Rezultatele vor fi implementate într-un pas ulterior.</string></property><property name="alignment"><set>Qt::AlignmentFlag::AlignCenter</set></property></widget></item></layout></widget>
     </widget></item>
