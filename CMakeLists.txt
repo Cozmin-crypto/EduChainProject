@@ -126,9 +126,14 @@ target_link_libraries(EduChainClient PRIVATE EduChainCore)
 if(EDUCHAIN_BUILD_QT)
     qt_add_executable(EduChainQtClient
         gui/qt_main.cpp
+        gui/ApplicationContext.h
+        gui/ApplicationContext.cpp
         gui/LoginWindow.h
         gui/LoginWindow.cpp
         gui/LoginWindow.ui
+        gui/MainWindow.h
+        gui/MainWindow.cpp
+        gui/MainWindow.ui
     )
 
     target_link_libraries(EduChainQtClient

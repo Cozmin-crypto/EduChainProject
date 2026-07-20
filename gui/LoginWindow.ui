@@ -19,9 +19,15 @@
     </widget>
    </item>
    <item>
-    <widget class="QLabel" name="subtitleLabel">
+   <widget class="QLabel" name="subtitleLabel">
      <property name="text"><string>Autentificare</string></property>
-    </widget>
+   </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="connectionLayout">
+     <item><widget class="QLabel" name="connectionStatusLabel"><property name="text"><string>Neconectat</string></property></widget></item>
+     <item><widget class="QPushButton" name="retryConnectionButton"><property name="text"><string>Reîncearcă</string></property></widget></item>
+    </layout>
    </item>
    <item>
     <layout class="QFormLayout" name="credentialsLayout">

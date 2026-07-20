@@ -4,6 +4,8 @@
 
 #include <memory>
 
+class ApplicationContext;
+
 namespace Ui {
 class LoginWindow;
 }
@@ -12,13 +14,18 @@ class LoginWindow final : public QWidget {
     Q_OBJECT
 
 public:
-    explicit LoginWindow(QWidget* parent = nullptr);
+    explicit LoginWindow(std::shared_ptr<ApplicationContext> context,
+                         QWidget* parent = nullptr);
     ~LoginWindow() override;
 
 private slots:
-    void afiseazaMesajLoginNeimplementat();
+    void autentifica();
     void afiseazaMesajRegisterNeimplementat();
+    void reconecteaza();
 
 private:
     std::unique_ptr<Ui::LoginWindow> ui_;
+    std::shared_ptr<ApplicationContext> context_;
+
+    void actualizeazaStareConexiune();
 };
