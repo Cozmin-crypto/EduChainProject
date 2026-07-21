@@ -13,10 +13,15 @@
 #include <QStackedWidget>
 #include <QString>
 #include <QStringList>
+#include <QTableWidget>
+#include <QHeaderView>
+#include <QLineEdit>
 #include <QTextBrowser>
 #include <QVariant>
 
 #include <algorithm>
+#include <cmath>
+#include <unordered_set>
 
 namespace {
 QString descrieCurs(const CursPublicEdu& curs) {
@@ -56,7 +61,10 @@ StudentDashboard::StudentDashboard(std::shared_ptr<ApplicationContext> context,
                 incarcaCursurilePentruLectii();
             });
     connect(ui_->evaluationsButton, &QPushButton::clicked, ui_->pagesStack,
-            [this] { ui_->pagesStack->setCurrentIndex(4); });
+            [this] {
+                ui_->pagesStack->setCurrentIndex(4);
+                incarcaCursurilePentruEvaluari();
+            });
     connect(ui_->resultsButton, &QPushButton::clicked, ui_->pagesStack,
             [this] { ui_->pagesStack->setCurrentIndex(5); });
     connect(ui_->refreshMyCoursesButton, &QPushButton::clicked,
@@ -76,9 +84,31 @@ StudentDashboard::StudentDashboard(std::shared_ptr<ApplicationContext> context,
             [this](int) { incarcaLectiileCursului(); });
     connect(ui_->lessonsList, &QListWidget::currentItemChanged,
             this, &StudentDashboard::afiseazaLectiaSelectata);
+    connect(ui_->refreshEvaluationCoursesButton, &QPushButton::clicked,
+            this, &StudentDashboard::incarcaCursurilePentruEvaluari);
+    connect(ui_->refreshEvaluationsButton, &QPushButton::clicked,
+            this, &StudentDashboard::incarcaEvaluarileCursului);
+    connect(ui_->evaluationCourseCombo,
+            qOverload<int>(&QComboBox::currentIndexChanged), this,
+            [this](int) {
+                golesteEvaluarea();
+                incarcaEvaluarileCursului();
+            });
+    connect(ui_->evaluationsList, &QListWidget::currentItemChanged,
+            this, &StudentDashboard::afiseazaEvaluareaSelectata);
+    connect(ui_->startEvaluationButton, &QPushButton::clicked,
+            this, &StudentDashboard::pornesteEvaluarea);
+    connect(ui_->finalizeEvaluationButton, &QPushButton::clicked,
+            this, &StudentDashboard::finalizeazaEvaluarea);
     ui_->enrollButton->setEnabled(false);
+    ui_->questionsTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    ui_->questionsTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+    ui_->questionsTable->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+    ui_->questionsTable->horizontalHeader()->setSectionResizeMode(3, QHeaderView::Stretch);
     golesteDetaliileLectiei();
     actualizeazaControaleleLectiilor();
+    golesteEvaluarea();
+    actualizeazaControaleleEvaluarii();
 }
 
 StudentDashboard::~StudentDashboard() = default;
@@ -356,4 +386,402 @@ void StudentDashboard::afiseazaLectiaSelectata() {
     }
     ui_->lessonMetadataLabel->setText(metadate.join(QString::fromUtf8(" • ")));
     ui_->lessonContent->setPlainText(QString::fromStdString(lectie->continut));
+}
+
+void StudentDashboard::golesteEvaluarea() {
+    ui_->evaluationTitleLabel->setText(QString::fromUtf8(u8"Nicio evaluare selectată"));
+    ui_->evaluationMetadataLabel->clear();
+    ui_->questionsTable->setRowCount(0);
+    ui_->evaluationProgressLabel->setText(QString::fromUtf8(u8"Progres: 0/0"));
+    ui_->evaluationActionStatusLabel->clear();
+    ui_->evaluationResultLabel->clear();
+    intrebariEvaluare_.clear();
+    incercareEvaluareId_ = 0;
+    incercareEvaluareFinalizata_ = false;
+    finalizareEvaluareInCurs_ = false;
+}
+
+void StudentDashboard::actualizeazaControaleleEvaluarii(bool cerereInCurs) {
+    const bool disponibil = context_->esteConectat() && context_->esteAutentificat() &&
+                            context_->rol() == "student" && !cerereInCurs;
+    const bool cursValid = ui_->evaluationCourseCombo->currentData(Qt::UserRole).toInt() > 0;
+    const auto* evaluare = ui_->evaluationsList->currentItem();
+    const bool evaluareValida = evaluare && evaluare->data(Qt::UserRole).toInt() > 0;
+    const bool incercareActiva = incercareEvaluareId_ > 0 &&
+                                 !incercareEvaluareFinalizata_;
+
+    ui_->refreshEvaluationCoursesButton->setEnabled(disponibil && !incercareActiva);
+    ui_->evaluationCourseCombo->setEnabled(
+        disponibil && !incercareActiva && ui_->evaluationCourseCombo->count() > 0);
+    ui_->refreshEvaluationsButton->setEnabled(disponibil && cursValid && !incercareActiva);
+    ui_->evaluationsList->setEnabled(
+        disponibil && cursValid && !incercareActiva && ui_->evaluationsList->count() > 0);
+    ui_->startEvaluationButton->setEnabled(
+        disponibil && evaluareValida && !intrebariEvaluare_.empty() &&
+        incercareEvaluareId_ == 0 && !incercareEvaluareFinalizata_);
+
+    for (int rand = 0; rand < ui_->questionsTable->rowCount(); ++rand) {
+        auto* raspuns = qobject_cast<QLineEdit*>(ui_->questionsTable->cellWidget(rand, 3));
+        if (raspuns) {
+            raspuns->setEnabled(disponibil && incercareActiva && !finalizareEvaluareInCurs_);
+        }
+    }
+    ui_->finalizeEvaluationButton->setEnabled(
+        disponibil && incercareActiva && !finalizareEvaluareInCurs_);
+}
+
+void StudentDashboard::incarcaCursurilePentruEvaluari() {
+    if (!poateExecutaCereri(ui_->evaluationCoursesStatusLabel)) {
+        actualizeazaControaleleEvaluarii();
+        return;
+    }
+    if (incercareEvaluareId_ > 0 && !incercareEvaluareFinalizata_) {
+        ui_->evaluationCoursesStatusLabel->setText(
+            QString::fromUtf8(u8"Finalizează încercarea curentă înainte de a schimba cursul."));
+        return;
+    }
+
+    const int cursSelectat = ui_->evaluationCourseCombo->currentData(Qt::UserRole).toInt();
+    actualizeazaControaleleEvaluarii(true);
+    ui_->evaluationCoursesStatusLabel->setText(QString::fromUtf8(u8"Încărcare cursuri..."));
+    try {
+        const auto cursuri = context_->client().listeazaCursuriInscrise();
+        QSignalBlocker blocare(ui_->evaluationCourseCombo);
+        ui_->evaluationCourseCombo->clear();
+        int indexSelectat = -1;
+        for (const auto& curs : cursuri) {
+            ui_->evaluationCourseCombo->addItem(QString::fromStdString(curs.nume), curs.id);
+            if (curs.id == cursSelectat) indexSelectat = ui_->evaluationCourseCombo->count() - 1;
+        }
+        if (!cursuri.empty()) {
+            ui_->evaluationCourseCombo->setCurrentIndex(indexSelectat >= 0 ? indexSelectat : 0);
+        }
+        blocare.unblock();
+
+        if (cursuri.empty()) {
+            ui_->evaluationCoursesStatusLabel->setText(
+                QString::fromUtf8(u8"Nu ești înscris la niciun curs."));
+            ui_->evaluationsStatusLabel->setText(
+                QString::fromUtf8(u8"Selectează un curs pentru a vedea evaluările."));
+            ui_->evaluationsList->clear();
+            golesteEvaluarea();
+            actualizeazaControaleleEvaluarii();
+            return;
+        }
+        ui_->evaluationCoursesStatusLabel->clear();
+        incarcaEvaluarileCursului();
+    } catch (const ExceptieEdu& eroare) {
+        ui_->evaluationCoursesStatusLabel->setText(
+            context_->esteConectat() ? QString::fromUtf8(eroare.what())
+                                     : QString::fromUtf8(u8"Conexiune pierdută."));
+        ui_->evaluationsList->clear();
+        golesteEvaluarea();
+        actualizeazaStareConexiune();
+        actualizeazaControaleleEvaluarii();
+    } catch (const std::exception&) {
+        ui_->evaluationCoursesStatusLabel->setText(
+            QString::fromUtf8(u8"A apărut o eroare neașteptată."));
+        ui_->evaluationsList->clear();
+        golesteEvaluarea();
+        actualizeazaControaleleEvaluarii();
+    }
+}
+
+void StudentDashboard::incarcaEvaluarileCursului() {
+    incarcaEvaluarileCursuluiCuSelectie(0);
+}
+
+void StudentDashboard::incarcaEvaluarileCursuluiCuSelectie(int evaluarePreferata) {
+    if (!poateExecutaCereri(ui_->evaluationsStatusLabel)) {
+        actualizeazaControaleleEvaluarii();
+        return;
+    }
+    if (incercareEvaluareId_ > 0 && !incercareEvaluareFinalizata_) {
+        ui_->evaluationsStatusLabel->setText(
+            QString::fromUtf8(u8"Finalizează încercarea curentă înainte de refresh."));
+        return;
+    }
+    const int cursId = ui_->evaluationCourseCombo->currentData(Qt::UserRole).toInt();
+    if (cursId <= 0) {
+        ui_->evaluationsStatusLabel->setText(
+            QString::fromUtf8(u8"Selectează un curs valid."));
+        ui_->evaluationsList->clear();
+        golesteEvaluarea();
+        actualizeazaControaleleEvaluarii();
+        return;
+    }
+    if (evaluarePreferata <= 0 && ui_->evaluationsList->currentItem()) {
+        evaluarePreferata = ui_->evaluationsList->currentItem()->data(Qt::UserRole).toInt();
+    }
+
+    actualizeazaControaleleEvaluarii(true);
+    ui_->evaluationsStatusLabel->setText(QString::fromUtf8(u8"Încărcare evaluări..."));
+    try {
+        const auto evaluari = context_->client().listeazaEvaluari(cursId);
+        QSignalBlocker blocare(ui_->evaluationsList);
+        ui_->evaluationsList->clear();
+        int randSelectat = -1;
+        for (const auto& evaluare : evaluari) {
+            const QString tip = evaluare.tip == TipEvaluareEdu::Chestionar
+                ? QString::fromUtf8(u8"Chestionar")
+                : QString::fromUtf8(u8"Examen final");
+            auto* element = new QListWidgetItem(
+                QString::fromUtf8("%1 — %2")
+                    .arg(QString::fromStdString(evaluare.nume), tip),
+                ui_->evaluationsList);
+            element->setData(Qt::UserRole, evaluare.id);
+            if (evaluare.id == evaluarePreferata) randSelectat = ui_->evaluationsList->count() - 1;
+        }
+        blocare.unblock();
+        golesteEvaluarea();
+
+        if (evaluari.empty()) {
+            ui_->evaluationsStatusLabel->setText(
+                QString::fromUtf8(u8"Cursul selectat nu are evaluări."));
+        } else {
+            actualizeazaControaleleEvaluarii();
+            const QSignalBlocker blocareSelectie(ui_->evaluationsList);
+            ui_->evaluationsList->setCurrentRow(randSelectat >= 0 ? randSelectat : 0);
+            ui_->evaluationsStatusLabel->clear();
+            afiseazaEvaluareaSelectata();
+        }
+    } catch (const ExceptieEdu& eroare) {
+        ui_->evaluationsStatusLabel->setText(
+            context_->esteConectat() ? QString::fromUtf8(eroare.what())
+                                     : QString::fromUtf8(u8"Conexiune pierdută."));
+        ui_->evaluationsList->clear();
+        golesteEvaluarea();
+        actualizeazaStareConexiune();
+    } catch (const std::exception&) {
+        ui_->evaluationsStatusLabel->setText(
+            QString::fromUtf8(u8"A apărut o eroare neașteptată."));
+        ui_->evaluationsList->clear();
+        golesteEvaluarea();
+    }
+    actualizeazaControaleleEvaluarii();
+}
+
+void StudentDashboard::afiseazaEvaluareaSelectata() {
+    golesteEvaluarea();
+    if (!poateExecutaCereri(ui_->evaluationsStatusLabel)) {
+        actualizeazaControaleleEvaluarii();
+        return;
+    }
+    const auto* element = ui_->evaluationsList->currentItem();
+    const int evaluareId = element ? element->data(Qt::UserRole).toInt() : 0;
+    const int cursId = ui_->evaluationCourseCombo->currentData(Qt::UserRole).toInt();
+    if (evaluareId <= 0 || cursId <= 0) {
+        if (element) ui_->evaluationsStatusLabel->setText(QString::fromUtf8(u8"Selecția evaluării este invalidă."));
+        actualizeazaControaleleEvaluarii();
+        return;
+    }
+
+    actualizeazaControaleleEvaluarii(true);
+    ui_->evaluationsStatusLabel->setText(QString::fromUtf8(u8"Încărcare evaluare..."));
+    try {
+        const auto evaluare = context_->client().obtineEvaluare(evaluareId);
+        if (!evaluare) {
+            ui_->evaluationsStatusLabel->setText(
+                QString::fromUtf8(u8"Evaluarea nu mai există. Reîmprospătează lista."));
+            actualizeazaControaleleEvaluarii();
+            return;
+        }
+        if (evaluare->id != evaluareId || evaluare->cursId != cursId) {
+            throw ExceptieEdu("Serverul a returnat o evaluare necorespunzatoare selectiei.");
+        }
+        auto intrebari = context_->client().listeazaIntrebari(evaluareId);
+        std::unordered_set<int> iduri;
+        double punctajMaxim = 0.0;
+        for (const auto& intrebare : intrebari) {
+            if (intrebare.id <= 0 || intrebare.evaluareId != evaluareId ||
+                intrebare.enunt.empty() || !std::isfinite(intrebare.punctajMaxim) ||
+                intrebare.punctajMaxim < 0.0 || !iduri.insert(intrebare.id).second) {
+                throw ExceptieEdu("Serverul a returnat o intrebare invalida.");
+            }
+            punctajMaxim += intrebare.punctajMaxim;
+        }
+        if (!std::isfinite(punctajMaxim)) {
+            throw ExceptieEdu("Punctajul maxim al evaluarii este invalid.");
+        }
+        intrebariEvaluare_ = std::move(intrebari);
+
+        ui_->evaluationTitleLabel->setText(QString::fromStdString(evaluare->nume));
+        QStringList metadate;
+        metadate << (evaluare->tip == TipEvaluareEdu::Chestionar
+                         ? QString::fromUtf8(u8"Tip: Chestionar")
+                         : QString::fromUtf8(u8"Tip: Examen final"));
+        metadate << QString::fromUtf8(u8"Limită: %1 minute").arg(evaluare->limitaTimp);
+        metadate << (evaluare->esteObligatorie
+                         ? QString::fromUtf8(u8"Obligatorie")
+                         : QString::fromUtf8(u8"Opțională"));
+        if (evaluare->numarIntrebari) {
+            metadate << QString::fromUtf8(u8"Întrebări declarate: %1").arg(*evaluare->numarIntrebari);
+        }
+        if (evaluare->pondere) {
+            metadate << QString::fromUtf8(u8"Pondere: %1").arg(*evaluare->pondere);
+        }
+        metadate << QString::fromUtf8(u8"Punctaj maxim: %1").arg(punctajMaxim);
+        ui_->evaluationMetadataLabel->setText(metadate.join(QString::fromUtf8(" • ")));
+
+        ui_->questionsTable->setRowCount(static_cast<int>(intrebariEvaluare_.size()));
+        for (int rand = 0; rand < static_cast<int>(intrebariEvaluare_.size()); ++rand) {
+            const auto& intrebare = intrebariEvaluare_[static_cast<std::size_t>(rand)];
+            auto* ordine = new QTableWidgetItem(QString::number(intrebare.ordine + 1));
+            ordine->setData(Qt::UserRole, intrebare.id);
+            ordine->setFlags(ordine->flags() & ~Qt::ItemIsEditable);
+            auto* enunt = new QTableWidgetItem(QString::fromStdString(intrebare.enunt));
+            enunt->setFlags(enunt->flags() & ~Qt::ItemIsEditable);
+            auto* punctaj = new QTableWidgetItem(QString::number(intrebare.punctajMaxim));
+            punctaj->setFlags(punctaj->flags() & ~Qt::ItemIsEditable);
+            auto* raspuns = new QLineEdit(ui_->questionsTable);
+            raspuns->setPlaceholderText(QString::fromUtf8(u8"Răspunsul tău"));
+            raspuns->setEnabled(false);
+            connect(raspuns, &QLineEdit::textChanged,
+                    this, &StudentDashboard::actualizeazaProgresulEvaluarii);
+            ui_->questionsTable->setItem(rand, 0, ordine);
+            ui_->questionsTable->setItem(rand, 1, enunt);
+            ui_->questionsTable->setItem(rand, 2, punctaj);
+            ui_->questionsTable->setCellWidget(rand, 3, raspuns);
+        }
+        actualizeazaProgresulEvaluarii();
+        ui_->evaluationsStatusLabel->setText(
+            intrebariEvaluare_.empty()
+                ? QString::fromUtf8(u8"Evaluarea nu conține întrebări disponibile.")
+                : QString());
+    } catch (const ExceptieEdu& eroare) {
+        ui_->evaluationsStatusLabel->setText(
+            context_->esteConectat() ? QString::fromUtf8(eroare.what())
+                                     : QString::fromUtf8(u8"Conexiune pierdută."));
+        golesteEvaluarea();
+        actualizeazaStareConexiune();
+    } catch (const std::exception&) {
+        ui_->evaluationsStatusLabel->setText(
+            QString::fromUtf8(u8"A apărut o eroare neașteptată."));
+        golesteEvaluarea();
+    }
+    actualizeazaControaleleEvaluarii();
+}
+
+void StudentDashboard::pornesteEvaluarea() {
+    if (!poateExecutaCereri(ui_->evaluationActionStatusLabel)) {
+        actualizeazaControaleleEvaluarii();
+        return;
+    }
+    const auto* element = ui_->evaluationsList->currentItem();
+    const int evaluareId = element ? element->data(Qt::UserRole).toInt() : 0;
+    if (evaluareId <= 0 || intrebariEvaluare_.empty()) {
+        ui_->evaluationActionStatusLabel->setText(
+            QString::fromUtf8(u8"Evaluarea selectată nu poate fi începută."));
+        return;
+    }
+    if (incercareEvaluareId_ > 0) {
+        ui_->evaluationActionStatusLabel->setText(
+            QString::fromUtf8(u8"Există deja o încercare deschisă pentru această selecție."));
+        return;
+    }
+
+    actualizeazaControaleleEvaluarii(true);
+    ui_->evaluationActionStatusLabel->setText(QString::fromUtf8(u8"Pornire evaluare..."));
+    try {
+        incercareEvaluareId_ = context_->client().pornesteIncercare(evaluareId);
+        if (incercareEvaluareId_ <= 0) {
+            incercareEvaluareId_ = 0;
+            throw ExceptieEdu("Serverul a returnat un ID invalid pentru incercare.");
+        }
+        incercareEvaluareFinalizata_ = false;
+        ui_->evaluationActionStatusLabel->setText(
+            QString::fromUtf8(u8"Evaluarea a început. Completează toate răspunsurile."));
+    } catch (const ExceptieEdu& eroare) {
+        incercareEvaluareId_ = 0;
+        ui_->evaluationActionStatusLabel->setText(
+            context_->esteConectat() ? QString::fromUtf8(eroare.what())
+                                     : QString::fromUtf8(u8"Conexiune pierdută."));
+        actualizeazaStareConexiune();
+    } catch (const std::exception&) {
+        incercareEvaluareId_ = 0;
+        ui_->evaluationActionStatusLabel->setText(
+            QString::fromUtf8(u8"A apărut o eroare neașteptată."));
+    }
+    actualizeazaControaleleEvaluarii();
+}
+
+void StudentDashboard::actualizeazaProgresulEvaluarii() {
+    int completate = 0;
+    for (int rand = 0; rand < ui_->questionsTable->rowCount(); ++rand) {
+        const auto* raspuns = qobject_cast<QLineEdit*>(ui_->questionsTable->cellWidget(rand, 3));
+        if (raspuns && !raspuns->text().trimmed().isEmpty()) ++completate;
+    }
+    ui_->evaluationProgressLabel->setText(
+        QString::fromUtf8(u8"Progres: %1/%2")
+            .arg(completate).arg(ui_->questionsTable->rowCount()));
+    actualizeazaControaleleEvaluarii();
+}
+
+void StudentDashboard::finalizeazaEvaluarea() {
+    if (finalizareEvaluareInCurs_) return;
+    if (!poateExecutaCereri(ui_->evaluationActionStatusLabel)) {
+        actualizeazaControaleleEvaluarii();
+        return;
+    }
+    if (incercareEvaluareId_ <= 0 || incercareEvaluareFinalizata_) {
+        ui_->evaluationActionStatusLabel->setText(
+            QString::fromUtf8(u8"Nu există o încercare activă care poate fi finalizată."));
+        return;
+    }
+    if (ui_->questionsTable->rowCount() != static_cast<int>(intrebariEvaluare_.size()) ||
+        intrebariEvaluare_.empty()) {
+        ui_->evaluationActionStatusLabel->setText(
+            QString::fromUtf8(u8"Lista întrebărilor nu mai este validă."));
+        return;
+    }
+
+    std::vector<std::pair<int, std::string>> raspunsuri;
+    raspunsuri.reserve(intrebariEvaluare_.size());
+    std::unordered_set<int> iduri;
+    double punctajMaxim = 0.0;
+    for (int rand = 0; rand < ui_->questionsTable->rowCount(); ++rand) {
+        const auto* itemId = ui_->questionsTable->item(rand, 0);
+        const auto* raspuns = qobject_cast<QLineEdit*>(ui_->questionsTable->cellWidget(rand, 3));
+        const int intrebareId = itemId ? itemId->data(Qt::UserRole).toInt() : 0;
+        const QString continut = raspuns ? raspuns->text().trimmed() : QString();
+        if (intrebareId <= 0 || continut.isEmpty() || !iduri.insert(intrebareId).second ||
+            intrebareId != intrebariEvaluare_[static_cast<std::size_t>(rand)].id) {
+            ui_->evaluationActionStatusLabel->setText(
+                QString::fromUtf8(u8"Completează o singură dată toate răspunsurile evaluării curente."));
+            return;
+        }
+        punctajMaxim += intrebariEvaluare_[static_cast<std::size_t>(rand)].punctajMaxim;
+        raspunsuri.emplace_back(intrebareId, continut.toUtf8().toStdString());
+    }
+
+    finalizareEvaluareInCurs_ = true;
+    actualizeazaControaleleEvaluarii();
+    ui_->evaluationActionStatusLabel->setText(QString::fromUtf8(u8"Trimitere răspunsuri..."));
+    try {
+        for (const auto& raspuns : raspunsuri) {
+            context_->client().salveazaRaspuns(
+                incercareEvaluareId_, raspuns.first, raspuns.second);
+        }
+        const auto rezultat = context_->client().finalizeazaIncercare(incercareEvaluareId_);
+        if (rezultat.id != incercareEvaluareId_ || !rezultat.finalizataLa ||
+            !std::isfinite(rezultat.scorBrut) || !std::isfinite(rezultat.notaFinala)) {
+            throw ExceptieEdu("Serverul a returnat un rezultat final invalid.");
+        }
+        incercareEvaluareFinalizata_ = true;
+        ui_->evaluationResultLabel->setText(
+            QString::fromUtf8(u8"Rezultat: %1 / %2 puncte • Nota: %3 / 10")
+                .arg(rezultat.scorBrut).arg(punctajMaxim).arg(rezultat.notaFinala));
+        ui_->evaluationActionStatusLabel->setText(
+            QString::fromUtf8(u8"Evaluarea a fost finalizată cu succes."));
+    } catch (const ExceptieEdu& eroare) {
+        ui_->evaluationActionStatusLabel->setText(
+            context_->esteConectat() ? QString::fromUtf8(eroare.what())
+                                     : QString::fromUtf8(u8"Conexiune pierdută."));
+        actualizeazaStareConexiune();
+    } catch (const std::exception&) {
+        ui_->evaluationActionStatusLabel->setText(
+            QString::fromUtf8(u8"A apărut o eroare neașteptată."));
+    }
+    finalizareEvaluareInCurs_ = false;
+    actualizeazaControaleleEvaluarii();
 }

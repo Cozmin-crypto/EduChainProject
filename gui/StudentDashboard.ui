@@ -57,7 +57,41 @@
        </layout></widget>
       </widget></item>
      </layout></widget>
-     <widget class="QWidget" name="evaluationsPage"><layout class="QVBoxLayout" name="evaluationsLayout"><item><widget class="QLabel" name="evaluationsLabel"><property name="text"><string>Evaluările vor fi implementate într-un pas ulterior.</string></property><property name="alignment"><set>Qt::AlignmentFlag::AlignCenter</set></property></widget></item></layout></widget>
+     <widget class="QWidget" name="evaluationsPage"><layout class="QVBoxLayout" name="evaluationsLayout">
+      <item><widget class="QLabel" name="evaluationsTitleLabel"><property name="text"><string>Evaluările cursului</string></property></widget></item>
+      <item><layout class="QHBoxLayout" name="evaluationCourseLayout">
+       <item><widget class="QLabel" name="evaluationCourseLabel"><property name="text"><string>Curs înscris:</string></property></widget></item>
+       <item><widget class="QComboBox" name="evaluationCourseCombo"/></item>
+       <item><widget class="QPushButton" name="refreshEvaluationCoursesButton"><property name="text"><string>Reîmprospătează cursurile</string></property></widget></item>
+      </layout></item>
+      <item><widget class="QLabel" name="evaluationCoursesStatusLabel"><property name="text"><string/></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+      <item><widget class="QSplitter" name="evaluationsSplitter"><property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property>
+       <widget class="QWidget" name="evaluationListPanel"><layout class="QVBoxLayout" name="evaluationListLayout">
+        <item><widget class="QListWidget" name="evaluationsList"><property name="selectionMode"><enum>QAbstractItemView::SelectionMode::SingleSelection</enum></property></widget></item>
+        <item><widget class="QLabel" name="evaluationsStatusLabel"><property name="text"><string>Selectează un curs pentru a vedea evaluările.</string></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+        <item><widget class="QPushButton" name="refreshEvaluationsButton"><property name="text"><string>Reîmprospătează evaluările</string></property></widget></item>
+       </layout></widget>
+       <widget class="QWidget" name="evaluationWorkPanel"><layout class="QVBoxLayout" name="evaluationWorkLayout">
+        <item><widget class="QLabel" name="evaluationTitleLabel"><property name="text"><string>Nicio evaluare selectată</string></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+        <item><widget class="QLabel" name="evaluationMetadataLabel"><property name="text"><string/></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+        <item><widget class="QTableWidget" name="questionsTable">
+         <property name="selectionMode"><enum>QAbstractItemView::SelectionMode::NoSelection</enum></property>
+         <property name="editTriggers"><set>QAbstractItemView::EditTrigger::NoEditTriggers</set></property>
+         <column><property name="text"><string>Nr.</string></property></column>
+         <column><property name="text"><string>Întrebare</string></property></column>
+         <column><property name="text"><string>Punctaj</string></property></column>
+         <column><property name="text"><string>Răspuns</string></property></column>
+        </widget></item>
+        <item><widget class="QLabel" name="evaluationProgressLabel"><property name="text"><string>Progres: 0/0</string></property></widget></item>
+        <item><widget class="QLabel" name="evaluationActionStatusLabel"><property name="text"><string/></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+        <item><widget class="QLabel" name="evaluationResultLabel"><property name="text"><string/></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+        <item><layout class="QHBoxLayout" name="evaluationActionsLayout">
+         <item><widget class="QPushButton" name="startEvaluationButton"><property name="text"><string>Începe evaluarea</string></property></widget></item>
+         <item><widget class="QPushButton" name="finalizeEvaluationButton"><property name="text"><string>Trimite și finalizează</string></property></widget></item>
+        </layout></item>
+       </layout></widget>
+      </widget></item>
+     </layout></widget>
      <widget class="QWidget" name="resultsPage"><layout class="QVBoxLayout" name="resultsLayout"><item><widget class="QLabel" name="resultsLabel"><property name="text"><string>Rezultatele vor fi implementate într-un pas ulterior.</string></property><property name="alignment"><set>Qt::AlignmentFlag::AlignCenter</set></property></widget></item></layout></widget>
     </widget></item>
    </layout></item>
