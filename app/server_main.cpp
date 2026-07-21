@@ -100,12 +100,13 @@ int main(int argc, char* argv[]) {
         EvaluareService evaluari(evaluariRepository, cursuriRepository, utilizatori, inscrieri);
 
         {
-            ServerEdu server(autentificare, cursuri, lectii, evaluari, inscrieri, portCerut);
+            ServerEdu server(autentificare, cursuri, lectii, evaluari, inscrieri,
+                             portCerut, "0.0.0.0");
             serverActiv = &server;
             server.pornesteNod();
 
             std::cout << "EduChainServer pornit\n"
-                      << "Adresa: 127.0.0.1\n"
+                      << "Adresa: 0.0.0.0\n"
                       << "Port cerut: " << portCerut << "\n"
                       << "Port efectiv: " << server.obtinePort() << "\n"
                       << "Baza de date: " << caleBazaDate << "\n"
