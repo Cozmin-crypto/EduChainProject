@@ -64,7 +64,55 @@
        </layout></widget>
       </widget></item>
      </layout></widget>
-     <widget class="QWidget" name="evaluationsPage"><layout class="QVBoxLayout" name="evaluationsLayout"><item><widget class="QLabel" name="evaluationsLabel"><property name="text"><string>Gestionarea evaluărilor va fi implementată într-un pas ulterior.</string></property><property name="alignment"><set>Qt::AlignmentFlag::AlignCenter</set></property></widget></item></layout></widget>
+     <widget class="QWidget" name="evaluationsPage"><layout class="QVBoxLayout" name="evaluationsLayout">
+      <item><widget class="QLabel" name="evaluationsTitleLabel"><property name="text"><string>Administrarea evaluărilor</string></property><property name="alignment"><set>Qt::AlignmentFlag::AlignCenter</set></property></widget></item>
+      <item><layout class="QHBoxLayout" name="evaluationCourseLayout">
+       <item><widget class="QLabel" name="evaluationCourseLabel"><property name="text"><string>Curs propriu:</string></property></widget></item>
+       <item><widget class="QComboBox" name="evaluationCourseCombo"/></item>
+       <item><widget class="QPushButton" name="refreshEvaluationCoursesButton"><property name="text"><string>Reîmprospătează cursurile</string></property></widget></item>
+      </layout></item>
+      <item><widget class="QLabel" name="evaluationCoursesStatusLabel"><property name="text"><string/></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+      <item><widget class="QSplitter" name="evaluationsSplitter"><property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property>
+       <widget class="QWidget" name="evaluationListPanel"><layout class="QVBoxLayout" name="evaluationListLayout">
+        <item><widget class="QLabel" name="evaluationListLabel"><property name="text"><string>Evaluările cursului</string></property></widget></item>
+        <item><widget class="QListWidget" name="evaluationsList"><property name="selectionMode"><enum>QAbstractItemView::SelectionMode::SingleSelection</enum></property></widget></item>
+        <item><widget class="QLabel" name="evaluationsStatusLabel"><property name="text"><string>Selectează un curs pentru a vedea evaluările.</string></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+        <item><widget class="QPushButton" name="refreshEvaluationsButton"><property name="text"><string>Reîmprospătează evaluările</string></property></widget></item>
+       </layout></widget>
+       <widget class="QWidget" name="evaluationDetailPanel"><layout class="QVBoxLayout" name="evaluationDetailLayout">
+        <item><widget class="QLabel" name="evaluationDetailTitleLabel"><property name="text"><string>Nicio evaluare selectată</string></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+        <item><widget class="QLabel" name="evaluationDetailMetadataLabel"><property name="text"><string/></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+        <item><widget class="QTableWidget" name="questionsTable"><property name="columnCount"><number>4</number></property><property name="rowCount"><number>0</number></property><property name="selectionBehavior"><enum>QAbstractItemView::SelectionBehavior::SelectRows</enum></property><property name="editTriggers"><set>QAbstractItemView::EditTrigger::NoEditTriggers</set></property>
+         <column><property name="text"><string>Ordine</string></property></column><column><property name="text"><string>Întrebare</string></property></column><column><property name="text"><string>Punctaj</string></property></column><column><property name="text"><string>ID</string></property></column>
+        </widget></item>
+        <item><widget class="QLabel" name="questionsStatusLabel"><property name="text"><string/></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+       </layout></widget>
+      </widget></item>
+      <item><layout class="QHBoxLayout" name="evaluationFormsLayout">
+       <item><widget class="QGroupBox" name="evaluationFormGroup"><property name="title"><string>Creează evaluare</string></property><layout class="QVBoxLayout" name="evaluationFormOuterLayout">
+        <item><layout class="QFormLayout" name="evaluationFormLayout">
+         <item row="0" column="0"><widget class="QLabel" name="evaluationNameLabel"><property name="text"><string>Titlu:</string></property></widget></item><item row="0" column="1"><widget class="QLineEdit" name="evaluationNameEdit"/></item>
+         <item row="1" column="0"><widget class="QLabel" name="evaluationTypeLabel"><property name="text"><string>Tip:</string></property></widget></item><item row="1" column="1"><widget class="QComboBox" name="evaluationTypeCombo"/></item>
+         <item row="2" column="0"><widget class="QLabel" name="evaluationTimeLabel"><property name="text"><string>Limită (minute):</string></property></widget></item><item row="2" column="1"><widget class="QSpinBox" name="evaluationTimeSpin"><property name="maximum"><number>1000000</number></property></widget></item>
+         <item row="3" column="0"><widget class="QLabel" name="evaluationRequiredLabel"><property name="text"><string>Obligatorie:</string></property></widget></item><item row="3" column="1"><widget class="QCheckBox" name="evaluationRequiredCheck"/></item>
+         <item row="4" column="0"><widget class="QLabel" name="evaluationQuestionCountLabel"><property name="text"><string>Număr inițial întrebări:</string></property></widget></item><item row="4" column="1"><widget class="QSpinBox" name="evaluationQuestionCountSpin"><property name="maximum"><number>1000000</number></property></widget></item>
+         <item row="5" column="0"><widget class="QLabel" name="evaluationWeightLabel"><property name="text"><string>Pondere:</string></property></widget></item><item row="5" column="1"><widget class="QDoubleSpinBox" name="evaluationWeightSpin"><property name="decimals"><number>3</number></property><property name="maximum"><double>1.000000000000000</double></property><property name="singleStep"><double>0.050000000000000</double></property></widget></item>
+        </layout></item>
+        <item><widget class="QLabel" name="evaluationFormStatusLabel"><property name="text"><string/></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+        <item><widget class="QPushButton" name="createEvaluationButton"><property name="text"><string>Creează evaluarea</string></property></widget></item>
+       </layout></widget></item>
+       <item><widget class="QGroupBox" name="questionFormGroup"><property name="title"><string>Adaugă întrebare</string></property><layout class="QVBoxLayout" name="questionFormOuterLayout">
+        <item><layout class="QFormLayout" name="questionFormLayout">
+         <item row="0" column="0"><widget class="QLabel" name="questionTextLabel"><property name="text"><string>Întrebare:</string></property></widget></item><item row="0" column="1"><widget class="QLineEdit" name="questionTextEdit"/></item>
+         <item row="1" column="0"><widget class="QLabel" name="correctAnswerLabel"><property name="text"><string>Răspuns corect:</string></property></widget></item><item row="1" column="1"><widget class="QLineEdit" name="correctAnswerEdit"/></item>
+         <item row="2" column="0"><widget class="QLabel" name="questionPointsLabel"><property name="text"><string>Punctaj:</string></property></widget></item><item row="2" column="1"><widget class="QDoubleSpinBox" name="questionPointsSpin"><property name="decimals"><number>2</number></property><property name="minimum"><double>0.010000000000000</double></property><property name="maximum"><double>1000000.000000000000000</double></property><property name="value"><double>1.000000000000000</double></property></widget></item>
+         <item row="3" column="0"><widget class="QLabel" name="questionOrderLabel"><property name="text"><string>Ordine:</string></property></widget></item><item row="3" column="1"><widget class="QSpinBox" name="questionOrderSpin"><property name="maximum"><number>1000000</number></property></widget></item>
+        </layout></item>
+        <item><widget class="QLabel" name="questionFormStatusLabel"><property name="text"><string/></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+        <item><widget class="QPushButton" name="addQuestionButton"><property name="text"><string>Adaugă întrebarea</string></property></widget></item>
+       </layout></widget></item>
+      </layout></item>
+     </layout></widget>
      <widget class="QWidget" name="studentsPage"><layout class="QVBoxLayout" name="studentsLayout"><item><widget class="QLabel" name="studentsLabel"><property name="text"><string>Lista studenților va fi implementată într-un pas ulterior.</string></property><property name="alignment"><set>Qt::AlignmentFlag::AlignCenter</set></property></widget></item></layout></widget>
     </widget></item>
    </layout></item>

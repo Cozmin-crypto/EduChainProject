@@ -21,6 +21,12 @@ private slots:
     void afiseazaLectiaSelectata();
     void actualizeazaCampurileTipului();
     void adaugaLectie();
+    void incarcaCursurilePentruEvaluari();
+    void incarcaEvaluarileCursului();
+    void afiseazaEvaluareaSelectata();
+    void actualizeazaCampurileTipuluiEvaluarii();
+    void creeazaEvaluare();
+    void adaugaIntrebare();
 
 private:
     std::unique_ptr<Ui::ProfessorDashboard> ui_;
@@ -32,4 +38,9 @@ private:
     void golesteDetaliileLectiei();
     void golesteFormularul();
     void incarcaLectiileCursuluiCuSelectie(int lectiePreferata);
+    void actualizeazaControaleleEvaluarilor(bool cerereInCurs = false);
+    void golesteDetaliileEvaluarii();
+    void golesteFormularulEvaluarii();
+    void golesteFormularulIntrebarii();
+    void incarcaEvaluarileCursuluiCuSelectie(int evaluarePreferata);
 };
