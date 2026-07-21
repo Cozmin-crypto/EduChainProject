@@ -16,6 +16,11 @@ public:
     ~ProfessorDashboard() override;
 
 private slots:
+    void incarcaCursurileAcasa();
+    void creeazaCurs();
+    void incarcaCursurilePentruStudenti();
+    void incarcaStudentiiCursului();
+    void inscrieStudentLaCurs();
     void incarcaCursurilePentruLectii();
     void incarcaLectiileCursului();
     void afiseazaLectiaSelectata();
@@ -34,6 +39,9 @@ private:
 
     bool poateExecutaCereri(QLabel* statusLabel);
     void actualizeazaStareConexiune();
+    void actualizeazaControaleleAdministrarii(bool cerereInCurs = false);
+    void incarcaCursurileAcasaCuSelectie(int cursPreferat);
+    void incarcaStudentiiCursuluiCuSelectie(int studentPreferat);
     void actualizeazaControalele(bool cerereInCurs = false);
     void golesteDetaliileLectiei();
     void golesteFormularul();

@@ -185,6 +185,16 @@ int main() {
             const auto studenti = client.listeazaStudentiCurs(cursId);
             verifica(studenti.size() == 1 && studenti.front().id == studentInscris,
                      "profesorul nu vede studentul inscris");
+            verifica(esteRespins([&] {
+                         client.inscrieStudentLaCurs(studentInscris, cursId);
+                     }) && esteRespins([&] {
+                         client.inscrieStudentLaCurs(999999, cursId);
+                     }) && esteRespins([&] {
+                         client.inscrieStudentLaCurs(profesorStrain, cursId);
+                     }),
+                     "inscrierea duplicata, utilizatorul inexistent sau rolul invalid nu au fost respinse");
+            verifica(client.listeazaStudentiCurs(cursId).size() == 1,
+                     "inscrierile respinse au modificat lista studentilor");
             client.deconecteaza();
             verifica(!client.esteAutentificat(), "sesiunea clientului nu a fost resetata");
         });
@@ -246,6 +256,7 @@ int main() {
             client.autentifica("profesor.strain.e2e@example.ro", "profesor-strain");
             verifica(client.listeazaCursuri().empty() &&
                          esteRespins([&] { client.obtineCurs(cursId); }) &&
+                         esteRespins([&] { client.listeazaStudentiCurs(cursId); }) &&
                          esteRespins([&] { client.listeazaLectii(cursId); }) &&
                          esteRespins([&] { client.obtineLectie(lectieTextId); }) &&
                          esteRespins([&] { client.listeazaEvaluari(cursId); }) &&
