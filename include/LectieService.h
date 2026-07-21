@@ -36,6 +36,7 @@ private:
 
     CursInregistrare obtineCursExistent(int cursId);
     LectieInregistrare obtineLectieExistenta(int lectieId);
+    void verificaAccesCitireLectie(int actorId, int cursId);
 
 public:
     LectieService(LectieRepository& lectii,

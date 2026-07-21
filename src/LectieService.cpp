@@ -18,7 +18,17 @@ CursInregistrare LectieService::obtineCursExistent(int cursId) {
     }
     return *curs;
 }
-std::vector<LectieInregistrare> LectieService::listeazaDupaCurs(int actorId,int cursId){if(!inscrieri)throw ExceptieEdu("Serviciul de inscrieri nu este disponibil.");inscrieri->verificaAccesStudentLaCurs(actorId,cursId);return lectii.listeazaDupaCurs(cursId);}
+void LectieService::verificaAccesCitireLectie(int actorId, int cursId) {
+    const auto actor = reguli.obtineActor(actorId);
+    if (actor.rol == "student") {
+        if (!inscrieri) throw ExceptieEdu("Serviciul de inscrieri nu este disponibil.");
+        inscrieri->verificaAccesStudentLaCurs(actorId, cursId);
+        return;
+    }
+    reguli.verificaAdministratorSauProprietar(actorId, obtineCursExistent(cursId));
+}
+
+std::vector<LectieInregistrare> LectieService::listeazaDupaCurs(int actorId,int cursId){verificaAccesCitireLectie(actorId,cursId);return lectii.listeazaDupaCurs(cursId);}
 
 LectieInregistrare LectieService::obtineLectieExistenta(int lectieId) {
     const auto lectie = lectii.cautaDupaId(lectieId);
@@ -27,7 +37,7 @@ LectieInregistrare LectieService::obtineLectieExistenta(int lectieId) {
     }
     return *lectie;
 }
-std::optional<LectieInregistrare> LectieService::obtineLectie(int actorId,int id){const auto l=lectii.cautaDupaId(id);if(l){if(!inscrieri)throw ExceptieEdu("Serviciul de inscrieri nu este disponibil.");inscrieri->verificaAccesStudentLaCurs(actorId,l->cursId);}return l;}
+std::optional<LectieInregistrare> LectieService::obtineLectie(int actorId,int id){const auto l=lectii.cautaDupaId(id);if(l)verificaAccesCitireLectie(actorId,l->cursId);return l;}
 
 std::vector<LectieInregistrare> LectieService::listeazaDupaCurs(int cursId) {
     return lectii.listeazaDupaCurs(cursId);
