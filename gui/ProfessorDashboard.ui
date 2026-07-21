@@ -20,9 +20,25 @@
      <item><spacer name="navSpacer"><property name="orientation"><enum>Qt::Orientation::Vertical</enum></property><property name="sizeHint" stdset="0"><size><width>20</width><height>40</height></size></property></spacer></item>
     </layout></item>
     <item><widget class="QStackedWidget" name="pagesStack">
-     <widget class="QWidget" name="homePage"><layout class="QVBoxLayout" name="homeLayout"><item><widget class="QLabel" name="homeLabel"><property name="text"><string>Funcționalitățile Profesorului vor fi implementate în pașii următori.</string></property><property name="alignment"><set>Qt::AlignmentFlag::AlignCenter</set></property><property name="wordWrap"><bool>true</bool></property></widget></item></layout></widget>
+     <widget class="QWidget" name="homePage"><layout class="QVBoxLayout" name="homeLayout">
+      <item><widget class="QLabel" name="homeTitleLabel"><property name="text"><string>Cursurile create de mine</string></property><property name="alignment"><set>Qt::AlignmentFlag::AlignCenter</set></property></widget></item>
+      <item><widget class="QListWidget" name="homeCoursesList"><property name="selectionMode"><enum>QAbstractItemView::SelectionMode::SingleSelection</enum></property></widget></item>
+      <item><widget class="QLabel" name="homeCoursesStatusLabel"><property name="text"><string/></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+      <item><widget class="QPushButton" name="refreshHomeCoursesButton"><property name="text"><string>Reîmprospătează cursurile</string></property></widget></item>
+     </layout></widget>
      <widget class="QWidget" name="myCoursesPage"><layout class="QVBoxLayout" name="myCoursesLayout"><item><widget class="QLabel" name="myCoursesLabel"><property name="text"><string>Gestionarea cursurilor va fi implementată într-un pas ulterior.</string></property><property name="alignment"><set>Qt::AlignmentFlag::AlignCenter</set></property></widget></item></layout></widget>
-     <widget class="QWidget" name="createCoursePage"><layout class="QVBoxLayout" name="createCourseLayout"><item><widget class="QLabel" name="createCourseLabel"><property name="text"><string>Crearea cursurilor va fi implementată într-un pas ulterior.</string></property><property name="alignment"><set>Qt::AlignmentFlag::AlignCenter</set></property></widget></item></layout></widget>
+     <widget class="QWidget" name="createCoursePage"><layout class="QVBoxLayout" name="createCourseLayout">
+      <item><widget class="QLabel" name="createCourseTitleLabel"><property name="text"><string>Creează un curs</string></property><property name="alignment"><set>Qt::AlignmentFlag::AlignCenter</set></property></widget></item>
+      <item><layout class="QFormLayout" name="createCourseFormLayout">
+       <item row="0" column="0"><widget class="QLabel" name="createCourseNameLabel"><property name="text"><string>Nume:</string></property></widget></item>
+       <item row="0" column="1"><widget class="QLineEdit" name="createCourseNameEdit"><property name="maxLength"><number>255</number></property></widget></item>
+       <item row="1" column="0"><widget class="QLabel" name="createCourseParentLabel"><property name="text"><string>ID curs părinte (opțional):</string></property></widget></item>
+       <item row="1" column="1"><widget class="QSpinBox" name="createCourseParentSpin"><property name="specialValueText"><string>Fără curs părinte</string></property><property name="maximum"><number>2147483647</number></property></widget></item>
+      </layout></item>
+      <item><widget class="QLabel" name="createCourseStatusLabel"><property name="text"><string/></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+      <item><widget class="QPushButton" name="submitCreateCourseButton"><property name="text"><string>Creează cursul</string></property></widget></item>
+      <item><spacer name="createCourseSpacer"><property name="orientation"><enum>Qt::Orientation::Vertical</enum></property><property name="sizeHint" stdset="0"><size><width>20</width><height>40</height></size></property></spacer></item>
+     </layout></widget>
      <widget class="QWidget" name="lessonsPage"><layout class="QVBoxLayout" name="lessonsLayout">
       <item><widget class="QLabel" name="lessonsTitleLabel"><property name="text"><string>Gestionarea lecțiilor</string></property></widget></item>
       <item><layout class="QHBoxLayout" name="lessonCourseLayout">
@@ -113,7 +129,23 @@
        </layout></widget></item>
       </layout></item>
      </layout></widget>
-     <widget class="QWidget" name="studentsPage"><layout class="QVBoxLayout" name="studentsLayout"><item><widget class="QLabel" name="studentsLabel"><property name="text"><string>Lista studenților va fi implementată într-un pas ulterior.</string></property><property name="alignment"><set>Qt::AlignmentFlag::AlignCenter</set></property></widget></item></layout></widget>
+     <widget class="QWidget" name="studentsPage"><layout class="QVBoxLayout" name="studentsLayout">
+      <item><widget class="QLabel" name="studentsTitleLabel"><property name="text"><string>Studenții cursului</string></property><property name="alignment"><set>Qt::AlignmentFlag::AlignCenter</set></property></widget></item>
+      <item><layout class="QHBoxLayout" name="studentsCourseLayout">
+       <item><widget class="QLabel" name="studentsCourseLabel"><property name="text"><string>Curs propriu:</string></property></widget></item>
+       <item><widget class="QComboBox" name="studentsCourseCombo"/></item>
+       <item><widget class="QPushButton" name="refreshStudentCoursesButton"><property name="text"><string>Reîmprospătează cursurile</string></property></widget></item>
+      </layout></item>
+      <item><widget class="QListWidget" name="studentsList"><property name="selectionMode"><enum>QAbstractItemView::SelectionMode::SingleSelection</enum></property></widget></item>
+      <item><widget class="QLabel" name="studentsStatusLabel"><property name="text"><string/></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+      <item><widget class="QGroupBox" name="enrollStudentGroup"><property name="title"><string>Adaugă Student existent</string></property><layout class="QVBoxLayout" name="enrollStudentLayout">
+       <item><layout class="QFormLayout" name="enrollStudentFormLayout">
+        <item row="0" column="0"><widget class="QLabel" name="studentIdLabel"><property name="text"><string>ID Student:</string></property></widget></item>
+        <item row="0" column="1"><widget class="QSpinBox" name="studentIdSpin"><property name="minimum"><number>1</number></property><property name="maximum"><number>2147483647</number></property></widget></item>
+       </layout></item>
+       <item><widget class="QPushButton" name="enrollStudentButton"><property name="text"><string>Adaugă Studentul</string></property></widget></item>
+      </layout></widget></item>
+     </layout></widget>
     </widget></item>
    </layout></item>
   </layout>
