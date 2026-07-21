@@ -15,5 +15,6 @@ public:
     void retrageStudentDeLaCurs(int studentId,int cursId);
     bool esteInscris(int studentId,int cursId);
     std::vector<CursInregistrare> listeazaCursuriStudent(int studentId);
+    std::vector<CursInregistrare> listeazaCursuriDisponibile(int studentId);
     std::vector<UtilizatorInregistrare> listeazaStudentiCurs(int cursId);
 };

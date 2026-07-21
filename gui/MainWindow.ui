@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="minimumSize"><size><width>600</width><height>350</height></size></property>
+  <property name="windowTitle"><string>EduChain</string></property>
+  <widget class="QWidget" name="centralWidget">
+   <layout class="QVBoxLayout" name="mainLayout">
+    <item><widget class="QLabel" name="userLabel"><property name="text"><string>Utilizator:</string></property></widget></item>
+    <item><widget class="QLabel" name="roleLabel"><property name="text"><string>Rol:</string></property></widget></item>
+    <item><widget class="QLabel" name="connectionLabel"><property name="text"><string>Neconectat</string></property></widget></item>
+    <item><widget class="QStackedWidget" name="dashboardStack"/></item>
+    <item><layout class="QHBoxLayout" name="buttonsLayout">
+     <item><widget class="QPushButton" name="logoutButton"><property name="text"><string>Logout</string></property></widget></item>
+     <item><widget class="QPushButton" name="closeButton"><property name="text"><string>Închide aplicația</string></property></widget></item>
+    </layout></item>
+   </layout>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

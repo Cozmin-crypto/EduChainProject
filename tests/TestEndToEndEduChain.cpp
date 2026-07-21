@@ -244,7 +244,14 @@ int main() {
         });
         ruleazaConexiune(server, [&](ClientEdu& client) {
             client.autentifica("profesor.strain.e2e@example.ro", "profesor-strain");
-            verifica(esteRespins([&] { client.actualizeazaCurs(cursId, "Curs furat"); }) &&
+            verifica(client.listeazaCursuri().empty() &&
+                         esteRespins([&] { client.obtineCurs(cursId); }) &&
+                         esteRespins([&] { client.listeazaLectii(cursId); }) &&
+                         esteRespins([&] { client.obtineLectie(lectieTextId); }) &&
+                         esteRespins([&] { client.listeazaEvaluari(cursId); }) &&
+                         esteRespins([&] { client.obtineEvaluare(evaluareId); }) &&
+                         esteRespins([&] { client.listeazaIntrebari(evaluareId); }) &&
+                         esteRespins([&] { client.actualizeazaCurs(cursId, "Curs furat"); }) &&
                          esteRespins([&] { client.stergeCurs(cursId); }) &&
                          esteRespins([&] {
                              client.creeazaLectieText(cursId, "Lectie straina", "x", 1, 1);
@@ -255,7 +262,7 @@ int main() {
                          }) && esteRespins([&] {
                              client.inscrieStudentLaCurs(studentNeinscris, cursId);
                          }),
-                     "profesorul strain a administrat cursul");
+                     "profesorul strain a citit sau administrat cursul");
             verifica(client.trimiteCerere("PING") == "PONG",
                      "conexiunea nu a ramas functionala dupa eroare business");
         });

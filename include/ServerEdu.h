@@ -61,6 +61,8 @@ private:
                                          const SesiuneClient& sesiune);
     RaspunsEdu proceseazaCerereInscriere(const CerereEdu& cerere,
                                          const SesiuneClient& sesiune);
+    RaspunsEdu proceseazaListeazaCursuriDisponibile(
+        const CerereEdu& cerere, const SesiuneClient& sesiune);
     void inchideClientActiv() noexcept;
 
 public:

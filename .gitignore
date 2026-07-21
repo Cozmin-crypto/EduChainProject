@@ -15,6 +15,9 @@ Release/
 x64/
 x86/
 build/
+build-qt/
 
 # Fișiere temporare
 *.log
+
+/build-qt/

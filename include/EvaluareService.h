@@ -59,6 +59,8 @@ private:
                                                          int incercareId);
     void verificaAdministrareEvaluare(int actorId,
                                       const EvaluareInregistrare& evaluare);
+    void verificaAccesCitireEvaluare(int actorId,
+                                     const EvaluareInregistrare& evaluare);
 
 public:
     EvaluareService(EvaluareRepository& evaluari,

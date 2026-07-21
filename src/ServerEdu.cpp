@@ -352,6 +352,8 @@ RaspunsEdu ServerEdu::distribuieCerere(const CerereEdu& cerere,
         case TipCerereEdu::ListeazaCursuriInscrise: case TipCerereEdu::ListeazaStudentiCurs:
         case TipCerereEdu::VerificaInscriere:
             return proceseazaCerereInscriere(cerere,sesiune);
+        case TipCerereEdu::ListeazaCursuriDisponibile:
+            return proceseazaListeazaCursuriDisponibile(cerere,sesiune);
         case TipCerereEdu::Deconectare:
             verificaCampuri(cerere, {});
             solicitaDeconectare = true;
@@ -676,6 +678,23 @@ RaspunsEdu ServerEdu::proceseazaCerereInscriere(const CerereEdu& c,const Sesiune
     verificaCampuri(c,{CampEdu::StudentId,CampEdu::CursId});const int curs=convertesteId(campObligatoriu(c,CampEdu::CursId),"Id-ul cursului");int student=s.utilizatorId;if(const auto x=ProtocolEdu::cautaCamp(c.campuri,CampEdu::StudentId))student=convertesteId(*x,"Id-ul studentului");
     if(c.tip==TipCerereEdu::VerificaInscriere){RaspunsEdu r=raspuns(c.idCerere,CodRezultatEdu::Succes,"Inscrierea a fost verificata.");r.campuri.push_back({static_cast<std::uint16_t>(CampEdu::Inscris),inscriereService->verificaInscriere(s.utilizatorId,student,curs)?"1":"0"});return r;}
     if(c.tip==TipCerereEdu::InscrieStudentLaCurs)inscriereService->inscrieStudent(s.utilizatorId,student,curs);else inscriereService->retrageStudent(s.utilizatorId,student,curs);return raspuns(c.idCerere,CodRezultatEdu::Succes,"Inscrierea a fost actualizata.");
+}
+
+RaspunsEdu ServerEdu::proceseazaListeazaCursuriDisponibile(
+    const CerereEdu& c, const SesiuneClient& s) {
+    verificaCampuri(c, {});
+    verificaAutentificare(s);
+    if (!inscriereService) {
+        throw ExceptieEdu("Serviciul de inscrieri nu este disponibil.");
+    }
+    RaspunsEdu r = raspuns(c.idCerere, CodRezultatEdu::Succes,
+                           "Cursurile disponibile au fost citite.");
+    for (const auto& curs :
+         inscriereService->listeazaCursuriDisponibile(s.utilizatorId)) {
+        r.campuri.push_back({static_cast<std::uint16_t>(CampEdu::Curs),
+                             ProtocolEdu::codificaCurs(cursPublic(curs))});
+    }
+    return r;
 }
 
 bool ServerEdu::estePornit() const noexcept {

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>LoginWindow</class>
+ <widget class="QWidget" name="LoginWindow">
+  <property name="minimumSize">
+   <size>
+    <width>450</width>
+    <height>300</height>
+   </size>
+  </property>
+  <property name="windowTitle">
+   <string>EduChain - Autentificare</string>
+  </property>
+  <layout class="QVBoxLayout" name="mainLayout">
+   <item>
+    <widget class="QLabel" name="titleLabel">
+     <property name="text"><string>EduChain</string></property>
+     <property name="alignment"><set>Qt::AlignmentFlag::AlignCenter</set></property>
+    </widget>
+   </item>
+   <item>
+   <widget class="QLabel" name="subtitleLabel">
+     <property name="text"><string>Autentificare</string></property>
+   </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="connectionLayout">
+     <item><widget class="QLabel" name="connectionStatusLabel"><property name="text"><string>Neconectat</string></property></widget></item>
+     <item><widget class="QPushButton" name="retryConnectionButton"><property name="text"><string>Reîncearcă</string></property></widget></item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QFormLayout" name="credentialsLayout">
+     <item row="0" column="0">
+      <widget class="QLabel" name="emailLabel">
+       <property name="text"><string>Email</string></property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QLineEdit" name="emailLineEdit">
+       <property name="placeholderText"><string>Introdu adresa de email</string></property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="passwordLabel">
+       <property name="text"><string>Parolă</string></property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QLineEdit" name="passwordLineEdit">
+       <property name="placeholderText"><string>Introdu parola</string></property>
+       <property name="echoMode"><enum>QLineEdit::EchoMode::Password</enum></property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QLabel" name="statusLabel">
+     <property name="text"><string/></property>
+    </widget>
+   </item>
+   <item>
+    <spacer name="verticalSpacer">
+     <property name="orientation"><enum>Qt::Orientation::Vertical</enum></property>
+     <property name="sizeHint" stdset="0"><size><width>20</width><height>40</height></size></property>
+    </spacer>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="buttonsLayout">
+     <item><widget class="QPushButton" name="loginButton"><property name="text"><string>Autentificare</string></property></widget></item>
+     <item><widget class="QPushButton" name="registerButton"><property name="text"><string>Creează cont</string></property></widget></item>
+     <item><widget class="QPushButton" name="exitButton"><property name="text"><string>Ieșire</string></property></widget></item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

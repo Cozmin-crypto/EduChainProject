@@ -11,6 +11,7 @@ public:
     void inscrieStudent(int actorId,int studentId,int cursId);
     void retrageStudent(int actorId,int studentId,int cursId);
     std::vector<CursInregistrare> listeazaCursuriInscrise(int actorId);
+    std::vector<CursInregistrare> listeazaCursuriDisponibile(int actorId);
     std::vector<UtilizatorInregistrare> listeazaStudentiCurs(int actorId,int cursId);
     bool verificaInscriere(int actorId,int studentId,int cursId);
     void verificaAccesStudentLaCurs(int actorId,int cursId);

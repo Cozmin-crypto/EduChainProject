@@ -42,6 +42,7 @@ enum class TipCerereEdu : std::uint16_t {
     ListeazaStudentiCurs = 32,
     VerificaInscriere = 33,
     Inregistrare = 34,
+    ListeazaCursuriDisponibile = 35,
     InregistrareStudent = Inregistrare
 };
 
