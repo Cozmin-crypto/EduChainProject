@@ -21,3 +21,5 @@ build-qt/
 *.log
 
 /build-qt/
+
+.qtcreator/
