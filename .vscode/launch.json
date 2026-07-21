@@ -1,0 +1,65 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug EduChainServer",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}\\build\\Debug\\EduChainServer.exe",
+            "args": [
+                "5050",
+                "${workspaceFolder}\\educhain.db"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Debug EduChainQtClient Local",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}\\build-qt\\Debug\\EduChainQtClient.exe",
+            "args": [
+                "127.0.0.1",
+                "5050"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}\\build-qt\\Debug",
+            "environment": [
+                {
+                    "name": "PATH",
+                    "value": "D:\\Qt\\6.11.1\\msvc2022_64\\bin;${env:PATH}"
+                }
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Debug EduChainQtClient LAN",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}\\build-qt\\Debug\\EduChainQtClient.exe",
+            "args": [
+                "${input:serverIp}",
+                "5050"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}\\build-qt\\Debug",
+            "environment": [
+                {
+                    "name": "PATH",
+                    "value": "D:\\Qt\\6.11.1\\msvc2022_64\\bin;${env:PATH}"
+                }
+            ],
+            "console": "integratedTerminal"
+        }
+    ],
+    "inputs": [
+        {
+            "id": "serverIp",
+            "type": "promptString",
+            "description": "IP-ul laptopului pe care rulează EduChainServer",
+            "default": "192.168.1.100"
+        }
+    ]
+}
