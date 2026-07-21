@@ -24,14 +24,14 @@ std::string normalizeazaRaspuns(std::string text) {
 }
 }
 EvaluareService::EvaluareService(EvaluareRepository&e,CursRepository&c,UtilizatorRepository&u,InscriereService&i):evaluari(e),cursuri(c),reguli(u),inscrieri(&i){}
-std::vector<EvaluareInregistrare> EvaluareService::listeazaDupaCurs(int actorId,int cursId){if(!inscrieri)throw ExceptieEdu("Serviciul de inscrieri nu este disponibil.");inscrieri->verificaAccesStudentLaCurs(actorId,cursId);return evaluari.listeazaDupaCurs(cursId);}
+std::vector<EvaluareInregistrare> EvaluareService::listeazaDupaCurs(int actorId,int cursId){const auto actor=reguli.obtineActor(actorId);if(actor.rol=="student"){if(!inscrieri)throw ExceptieEdu("Serviciul de inscrieri nu este disponibil.");inscrieri->verificaAccesStudentLaCurs(actorId,cursId);}else{reguli.verificaAdministratorSauProprietar(actorId,obtineCursExistent(cursId));}return evaluari.listeazaDupaCurs(cursId);}
 
 EvaluareService::EvaluareService(EvaluareRepository& evaluari,
                                  CursRepository& cursuri,
                                  UtilizatorRepository& utilizatori)
     : evaluari(evaluari), cursuri(cursuri), reguli(utilizatori) {
 }
-std::optional<EvaluareInregistrare> EvaluareService::obtineEvaluare(int actorId,int id){const auto e=evaluari.cautaDupaId(id);if(e){if(!inscrieri)throw ExceptieEdu("Serviciul de inscrieri nu este disponibil.");inscrieri->verificaAccesStudentLaCurs(actorId,e->cursId);}return e;}
+std::optional<EvaluareInregistrare> EvaluareService::obtineEvaluare(int actorId,int id){const auto e=evaluari.cautaDupaId(id);if(e)verificaAccesCitireEvaluare(actorId,*e);return e;}
 
 CursInregistrare EvaluareService::obtineCursExistent(int cursId) {
     const auto curs = cursuri.cautaDupaId(cursId);
@@ -52,6 +52,19 @@ EvaluareInregistrare EvaluareService::obtineEvaluareExistenta(int evaluareId) {
 void EvaluareService::verificaAdministrareEvaluare(
     int actorId,
     const EvaluareInregistrare& evaluare) {
+    reguli.verificaAdministratorSauProprietar(
+        actorId, obtineCursExistent(evaluare.cursId));
+}
+
+void EvaluareService::verificaAccesCitireEvaluare(
+    int actorId,
+    const EvaluareInregistrare& evaluare) {
+    const auto actor = reguli.obtineActor(actorId);
+    if (actor.rol == "student") {
+        if (!inscrieri) throw ExceptieEdu("Serviciul de inscrieri nu este disponibil.");
+        inscrieri->verificaAccesStudentLaCurs(actorId, evaluare.cursId);
+        return;
+    }
     reguli.verificaAdministratorSauProprietar(
         actorId, obtineCursExistent(evaluare.cursId));
 }
@@ -153,7 +166,7 @@ std::vector<IntrebareChestionarInregistrare> EvaluareService::listeazaIntrebari(
     int chestionarId) {
     return evaluari.listeazaIntrebari(chestionarId);
 }
-std::vector<IntrebareChestionarInregistrare> EvaluareService::listeazaIntrebari(int actorId,int id){const auto e=obtineEvaluareExistenta(id);if(!inscrieri)throw ExceptieEdu("Serviciul de inscrieri nu este disponibil.");inscrieri->verificaAccesStudentLaCurs(actorId,e.cursId);return evaluari.listeazaIntrebari(id);}
+std::vector<IntrebareChestionarInregistrare> EvaluareService::listeazaIntrebari(int actorId,int id){const auto e=obtineEvaluareExistenta(id);verificaAccesCitireEvaluare(actorId,e);return evaluari.listeazaIntrebari(id);}
 
 int EvaluareService::pornesteIncercare(int studentId, int evaluareId) {
     reguli.verificaStudent(studentId);

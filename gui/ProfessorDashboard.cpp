@@ -28,6 +28,7 @@
 
 #include <exception>
 #include <utility>
+#include <vector>
 
 namespace {
 bool citesteNumarNenegativ(const QLineEdit* camp, long long& rezultat) {
@@ -659,13 +660,15 @@ void ProfessorDashboard::afiseazaEvaluareaSelectata() {
         if (evaluare->pondere) {
             metadate << QString::fromUtf8(u8"Pondere: %1").arg(*evaluare->pondere);
         }
-        ui_->evaluationDetailMetadataLabel->setText(
-            metadate.join(QString::fromUtf8(u8" • ")));
-
-        const auto intrebari = context_->client().listeazaIntrebari(evaluareId);
+        std::vector<IntrebarePublicEdu> intrebari;
+        if (evaluare->tip == TipEvaluareEdu::Chestionar) {
+            intrebari = context_->client().listeazaIntrebari(evaluareId);
+        }
         ui_->questionsTable->setRowCount(static_cast<int>(intrebari.size()));
         int rand = 0;
+        double punctajMaxim = 0.0;
         for (const auto& intrebare : intrebari) {
+            punctajMaxim += intrebare.punctajMaxim;
             auto* ordine = new QTableWidgetItem(QString::number(intrebare.ordine));
             ordine->setData(Qt::UserRole, intrebare.id);
             ui_->questionsTable->setItem(rand, 0, ordine);
@@ -677,8 +680,14 @@ void ProfessorDashboard::afiseazaEvaluareaSelectata() {
                 new QTableWidgetItem(QString::number(intrebare.id)));
             ++rand;
         }
+        metadate << QString::fromUtf8(u8"Punctaj maxim: %1").arg(punctajMaxim);
+        ui_->evaluationDetailMetadataLabel->setText(
+            metadate.join(QString::fromUtf8(u8" • ")));
         ui_->questionsStatusLabel->setText(
-            intrebari.empty() ? QString::fromUtf8(u8"Evaluarea nu are întrebări.") : QString());
+            evaluare->tip == TipEvaluareEdu::ExamenFinal
+                ? QString::fromUtf8(u8"Întrebările sunt disponibile numai pentru chestionare.")
+                : (intrebari.empty() ? QString::fromUtf8(u8"Evaluarea nu are întrebări.")
+                                     : QString()));
         ui_->questionOrderSpin->setValue(static_cast<int>(intrebari.size()));
         ui_->evaluationsStatusLabel->clear();
     } catch (const ExceptieEdu& eroare) {
