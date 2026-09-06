@@ -23,6 +23,7 @@ void valideazaId(int id, const std::string& denumire) {
 
 void valideazaDateLectie(const std::string& nume,
                          const std::string& tip,
+                         const std::string& continut,
                          long long dimensiuneOcteti,
                          const std::optional<long long>& numarCuvinte,
                          const std::optional<long long>& durata,
@@ -45,6 +46,15 @@ void valideazaDateLectie(const std::string& nume,
     }
 
     if (tip == "video") {
+        const bool areSchemaHttp = continut.rfind("http://", 0) == 0;
+        const bool areSchemaHttps = continut.rfind("https://", 0) == 0;
+        const std::size_t lungimeSchema = areSchemaHttps ? 8U : 7U;
+        if ((!areSchemaHttp && !areSchemaHttps) ||
+            continut.size() <= lungimeSchema ||
+            continut.find_first_of("\r\n\t ") != std::string::npos) {
+            throw ExceptieEdu(
+                "Lectia video necesita un link valid care incepe cu http:// sau https://.");
+        }
         if (!durata.has_value() || *durata < 0) {
             throw ExceptieEdu("Lectia video necesita o durata nenegativa.");
         }
@@ -198,7 +208,8 @@ int LectieRepository::adaugaLectie(int cursId,
                                    std::optional<std::string> codec) {
     valideazaCursExistent(cursId);
     valideazaProfesorExistent(proprietarId);
-    valideazaDateLectie(nume, tip, dimensiuneOcteti, numarCuvinte, durata, codec);
+    valideazaDateLectie(
+        nume, tip, continut, dimensiuneOcteti, numarCuvinte, durata, codec);
 
     incepeTranzactie(conector);
     try {
@@ -239,7 +250,8 @@ bool LectieRepository::actualizeazaLectie(int id,
                                           std::optional<long long> durata,
                                           std::optional<std::string> codec) {
     valideazaId(id, "Id-ul lectiei");
-    valideazaDateLectie(nume, tip, dimensiuneOcteti, numarCuvinte, durata, codec);
+    valideazaDateLectie(
+        nume, tip, continut, dimensiuneOcteti, numarCuvinte, durata, codec);
     if (!cautaDupaId(id).has_value()) {
         return false;
     }

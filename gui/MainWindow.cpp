@@ -1,6 +1,5 @@
 #include "MainWindow.h"
 
-#include "AdminDashboard.h"
 #include "ApplicationContext.h"
 #include "LoginWindow.h"
 #include "ProfessorDashboard.h"
@@ -65,8 +64,6 @@ void MainWindow::configureazaDashboard() {
         dashboard = new StudentDashboard(context_, ui_->dashboardStack);
     } else if (rol == "profesor") {
         dashboard = new ProfessorDashboard(context_, ui_->dashboardStack);
-    } else if (rol == "administrator") {
-        dashboard = new AdminDashboard(context_, ui_->dashboardStack);
     } else {
         QTimer::singleShot(0, this, &MainWindow::trateazaRolNecunoscut);
         return;

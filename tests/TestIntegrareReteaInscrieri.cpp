@@ -5,7 +5,6 @@
 #include "CursService.h"
 #include "EvaluareRepository.h"
 #include "EvaluareService.h"
-#include "ExceptieEdu.h"
 #include "InscriereRepository.h"
 #include "InscriereService.h"
 #include "LectieRepository.h"
@@ -13,11 +12,167 @@
 #include "ManagerSocket.h"
 #include "ServerEdu.h"
 #include "UtilizatorRepository.h"
+
 #include <chrono>
 #include <filesystem>
-#include <functional>
 #include <iostream>
 #include <stdexcept>
 #include <thread>
-namespace{void v(bool c,const char*m){if(!c)throw std::runtime_error(m);}bool ex(const std::function<void()>&f){try{f();}catch(const ExceptieEdu&){return true;}return false;}void prof(ConectorBazaDate&d,int id){d.executaInterogareParametrizata("INSERT INTO personal(utilizator_id,departament,data_angajarii) VALUES (?,?,?);",{std::to_string(id),"IT","2026-07-19"});d.executaInterogareParametrizata("INSERT INTO profesori(utilizator_id) VALUES (?);",{std::to_string(id)});}void stud(ConectorBazaDate&d,int id){d.executaInterogareParametrizata("INSERT INTO studenti(utilizator_id) VALUES (?);",{std::to_string(id)});}template<class F>void conn(ServerEdu&s,F f){std::exception_ptr e;std::thread t([&]{try{s.proceseazaCerere();}catch(...){e=std::current_exception();}});try{ClientEdu c(s.obtinePort());c.pornesteNod();f(c);if(c.esteConectat())c.deconecteaza();}catch(...){s.opresteNod();t.join();throw;}t.join();if(e)std::rethrow_exception(e);}}
-int main(){auto p=std::filesystem::temp_directory_path()/("educhain_retea_inscrieri_"+std::to_string(std::chrono::high_resolution_clock::now().time_since_epoch().count())+".db");int so=SocketWindows::numarSocketuriActive(),wi=InitializatorWinsock::numarInstanteActive();ConectorBazaDate db;try{db.deschideConexiune(p.string());UtilizatorRepository u(db);CursRepository cr(db);LectieRepository lr(db);EvaluareRepository er(db);InscriereRepository ir(db);InscriereService is(ir,cr,u);CursService cs(cr,u,is);LectieService ls(lr,cr,u,is);EvaluareService es(er,cr,u,is);AutentificareService as(u);int pr=u.adaugaUtilizator("p@x.ro","p","profesor"),st=u.adaugaUtilizator("s@x.ro","s","student");prof(db,pr);stud(db,st);int curs=cs.creeazaCurs({pr,pr,"C",std::nullopt});int lectie=ls.creeazaLectie({pr,curs,"L","text","x",1,1,std::nullopt,std::nullopt});int ev=es.creeazaEvaluare({pr,curs,"E","chestionar",10,true,0,std::nullopt});{ServerEdu server(as,cs,ls,es,is,0);server.pornesteNod();conn(server,[&](ClientEdu&c){CerereEdu q;q.tip=TipCerereEdu::ListeazaCursuriInscrise;v(c.executaCerere(q).cod==CodRezultatEdu::AccesInterzis,"fara login");});conn(server,[&](ClientEdu&c){c.autentifica("s@x.ro","s");v(c.listeazaCursuri().empty(),"student neinscris vede curs");v(ex([&]{c.listeazaLectii(curs);}),"acces lectii neinscris");v(ex([&]{c.listeazaEvaluari(curs);}),"acces evaluari neinscris");c.inscrieLaCurs(curs);v(c.verificaInscriere(st,curs),"verificare inscriere");v(c.listeazaCursuriInscrise().size()==1&&c.listeazaCursuri().size()==1,"listare inscrieri");v(c.obtineLectie(lectie).has_value()&&c.obtineEvaluare(ev).has_value(),"acces continut inscris");v(ex([&]{c.inscrieLaCurs(curs);}),"duplicat");CerereEdu injectie;injectie.tip=TipCerereEdu::InscrieStudentLaCurs;injectie.campuri={{static_cast<std::uint16_t>(CampEdu::CursId),std::to_string(curs)},{static_cast<std::uint16_t>(CampEdu::Rol),"administrator"}};v(c.executaCerere(injectie).cod==CodRezultatEdu::ValidareEsuata,"injectie rol");c.retrageDeLaCurs(curs);v(!c.verificaInscriere(st,curs),"retragere");v(c.trimiteCerere("PING")=="PONG","ping");});conn(server,[&](ClientEdu&c){c.autentifica("p@x.ro","p");c.inscrieStudentLaCurs(st,curs);v(c.listeazaStudentiCurs(curs).size()==1,"profesor listare");});server.opresteNod();}db.inchideConexiune();std::filesystem::remove(p);v(SocketWindows::numarSocketuriActive()==so,"socket");v(InitializatorWinsock::numarInstanteActive()==wi,"winsock");std::cout<<"Test retea inscrieri: SUCCES\n";return 0;}catch(const std::exception&e){db.inchideConexiune();std::filesystem::remove(p);std::cerr<<e.what()<<'\n';return 1;}}
+
+namespace {
+void verifica(bool conditie, const char* mesaj) {
+    if (!conditie) throw std::runtime_error(mesaj);
+}
+
+void adaugaProfesor(ConectorBazaDate& db, int id) {
+    db.executaInterogareParametrizata(
+        "INSERT INTO personal(utilizator_id,departament,data_angajarii) VALUES (?,?,?);",
+        {std::to_string(id), "IT", "2026-07-19"});
+    db.executaInterogareParametrizata(
+        "INSERT INTO profesori(utilizator_id) VALUES (?);", {std::to_string(id)});
+}
+
+void adaugaStudent(ConectorBazaDate& db, int id) {
+    db.executaInterogareParametrizata(
+        "INSERT INTO studenti(utilizator_id) VALUES (?);", {std::to_string(id)});
+}
+
+template <typename Operatie>
+void conexiune(ServerEdu& server, Operatie operatie) {
+    std::exception_ptr eroareServer;
+    std::thread fir([&] { try { server.proceseazaCerere(); }
+                         catch (...) { eroareServer = std::current_exception(); } });
+    try {
+        ClientEdu client(server.obtinePort());
+        client.pornesteNod();
+        operatie(client);
+        if (client.esteConectat()) client.deconecteaza();
+    } catch (...) {
+        server.opresteNod();
+        fir.join();
+        throw;
+    }
+    fir.join();
+    if (eroareServer) std::rethrow_exception(eroareServer);
+}
+
+CerereEdu cerereInscriere(int studentId, int cursId) {
+    CerereEdu cerere;
+    cerere.tip = TipCerereEdu::InscrieStudentLaCurs;
+    cerere.campuri = {
+        {static_cast<std::uint16_t>(CampEdu::StudentId), std::to_string(studentId)},
+        {static_cast<std::uint16_t>(CampEdu::CursId), std::to_string(cursId)}};
+    return cerere;
+}
+}
+
+int main() {
+    const auto cale = std::filesystem::temp_directory_path() /
+        ("educhain_retea_inscrieri_" + std::to_string(
+            std::chrono::high_resolution_clock::now().time_since_epoch().count()) + ".db");
+    const int socketuri = SocketWindows::numarSocketuriActive();
+    const int winsock = InitializatorWinsock::numarInstanteActive();
+    ConectorBazaDate db;
+    try {
+        db.deschideConexiune(cale.string());
+        UtilizatorRepository utilizatori(db);
+        CursRepository cursuriRepo(db);
+        LectieRepository lectiiRepo(db);
+        EvaluareRepository evaluariRepo(db);
+        InscriereRepository inscrieriRepo(db);
+        InscriereService inscrieri(inscrieriRepo, cursuriRepo, utilizatori);
+        CursService cursuri(cursuriRepo, utilizatori, inscrieri);
+        LectieService lectii(lectiiRepo, cursuriRepo, utilizatori, inscrieri);
+        EvaluareService evaluari(evaluariRepo, cursuriRepo, utilizatori, inscrieri);
+        AutentificareService autentificare(utilizatori);
+
+        const int profesor1 = utilizatori.adaugaUtilizator(
+            "p1@x.ro", "parola1", "profesor", "Ionescu", "Mihai");
+        const int profesor2 = utilizatori.adaugaUtilizator(
+            "p2@x.ro", "parola2", "profesor", "Marin", "Elena");
+        const int student1 = utilizatori.adaugaUtilizator(
+            "s1@x.ro", "parola3", "student", "Popescu", "Ion");
+        const int student2 = utilizatori.adaugaUtilizator(
+            "s2@x.ro", "parola4", "student", "Georgescu", "Ana");
+        adaugaProfesor(db, profesor1); adaugaProfesor(db, profesor2);
+        adaugaStudent(db, student1); adaugaStudent(db, student2);
+        const int curs1 = cursuri.creeazaCurs(
+            {profesor1, profesor1, "Curs 1", std::nullopt});
+        const int curs2 = cursuri.creeazaCurs(
+            {profesor2, profesor2, "Curs 2", std::nullopt});
+
+        {
+            ServerEdu server(autentificare, cursuri, lectii, evaluari, inscrieri, 0);
+            server.pornesteNod();
+            conexiune(server, [&](ClientEdu& client) {
+                CerereEdu cerere;
+                cerere.tip = TipCerereEdu::ListeazaStudentiCurs;
+                cerere.campuri = {{static_cast<std::uint16_t>(CampEdu::CursId),
+                                   std::to_string(curs1)}};
+                verifica(client.executaCerere(cerere).cod == CodRezultatEdu::AccesInterzis,
+                         "listarea fara autentificare a fost acceptata");
+            });
+            conexiune(server, [&](ClientEdu& client) {
+                const auto login = client.autentifica("p1@x.ro", "parola1");
+                verifica(login.cod == CodRezultatEdu::Succes,
+                         "login profesor a esuat");
+                verifica(!ProtocolEdu::cautaCamp(login.campuri, CampEdu::Parola),
+                         "hash-ul parolei a fost trimis prin protocol");
+                verifica(client.executaCerere(cerereInscriere(student1, curs1)).cod ==
+                             CodRezultatEdu::Succes,
+                         "studentul existent nu a fost inscris");
+                const auto lista = client.listeazaStudentiCurs(curs1);
+                verifica(lista.size() == 1 && lista.front().id == student1 &&
+                             lista.front().nume == "Popescu" &&
+                             lista.front().prenume == "Ion",
+                         "StudentPublicEdu nu contine numele si prenumele");
+
+                const auto duplicat = client.executaCerere(cerereInscriere(student1, curs1));
+                verifica(duplicat.cod == CodRezultatEdu::Conflict &&
+                             duplicat.mesajPublic ==
+                                 "Studentul este deja inscris la acest curs.",
+                         "duplicatul nu este refuzat explicit");
+                const auto inexistent = client.executaCerere(cerereInscriere(999999, curs1));
+                verifica(inexistent.cod == CodRezultatEdu::ResursaInexistenta &&
+                             inexistent.mesajPublic == "Studentul nu exista.",
+                         "studentul inexistent nu este refuzat explicit");
+                const auto rolInvalid = client.executaCerere(
+                    cerereInscriere(profesor2, curs1));
+                verifica(rolInvalid.cod == CodRezultatEdu::ValidareEsuata &&
+                             rolInvalid.mesajPublic ==
+                                 "Utilizatorul selectat nu este student.",
+                         "profesorul poate fi inscris ca student");
+                CerereEdu lipsaCamp;
+                lipsaCamp.tip = TipCerereEdu::InscrieStudentLaCurs;
+                lipsaCamp.campuri = {{static_cast<std::uint16_t>(CampEdu::StudentId),
+                                      std::to_string(student2)}};
+                verifica(client.executaCerere(lipsaCamp).cod == CodRezultatEdu::ValidareEsuata,
+                         "cererea cu camp lipsa a fost acceptata");
+            });
+            conexiune(server, [&](ClientEdu& client) {
+                client.autentifica("p2@x.ro", "parola2");
+                verifica(client.executaCerere(cerereInscriere(student2, curs1)).cod ==
+                             CodRezultatEdu::AccesInterzis,
+                         "profesorul strain a inscris student in cursul altuia");
+                verifica(client.executaCerere(cerereInscriere(student2, curs2)).cod ==
+                             CodRezultatEdu::Succes,
+                         "proprietarul nu poate inscrie studentul");
+            });
+            server.opresteNod();
+        }
+
+        db.inchideConexiune();
+        std::filesystem::remove(cale);
+        verifica(SocketWindows::numarSocketuriActive() == socketuri,
+                 "au ramas socketuri active");
+        verifica(InitializatorWinsock::numarInstanteActive() == winsock,
+                 "au ramas instante Winsock active");
+        std::cout << "Test retea inscrieri: SUCCES\n";
+        return 0;
+    } catch (const std::exception& eroare) {
+        db.inchideConexiune();
+        std::filesystem::remove(cale);
+        std::cerr << eroare.what() << '\n';
+        return 1;
+    }
+}

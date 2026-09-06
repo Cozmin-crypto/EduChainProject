@@ -110,6 +110,7 @@ CodRezultatEdu clasificaExceptie(const std::string& mesaj) {
         mesaj.find("nu poate administra") != std::string::npos ||
         mesaj.find("Studentul nu poate") != std::string::npos ||
         mesaj.find("doar studentilor") != std::string::npos ||
+        mesaj.find("Doar profesorii") != std::string::npos ||
         mesaj.find("Profesorul poate crea doar") != std::string::npos ||
         mesaj.find("Rolul utilizatorului nu permite") != std::string::npos) {
         return CodRezultatEdu::AccesInterzis;
@@ -117,7 +118,8 @@ CodRezultatEdu clasificaExceptie(const std::string& mesaj) {
     if (mesaj.find("nu exista") != std::string::npos) {
         return CodRezultatEdu::ResursaInexistenta;
     }
-    if (mesaj.find("UNIQUE constraint failed") != std::string::npos) {
+    if (mesaj.find("UNIQUE constraint failed") != std::string::npos ||
+        mesaj.find("deja inscris") != std::string::npos) {
         return CodRezultatEdu::Conflict;
     }
     return CodRezultatEdu::ValidareEsuata;
@@ -153,6 +155,24 @@ LectiePublicEdu lectiePublica(const LectieInregistrare& lectie) {
 EvaluarePublicEdu evaluarePublica(const EvaluareInregistrare& e){return {e.id,e.cursId,e.profesorId,e.nume,e.tip=="chestionar"?TipEvaluareEdu::Chestionar:TipEvaluareEdu::ExamenFinal,e.limitaTimp,e.esteObligatorie,e.numarIntrebari,e.pondere};}
 IntrebarePublicEdu intrebarePublica(const IntrebareChestionarInregistrare& i){return {i.id,i.chestionarId,i.enunt,i.punctajMaxim,i.ordine};}
 IncercarePublicEdu incercarePublica(const IncercareEvaluareInregistrare& i){return {i.id,i.evaluareId,i.studentId,i.inceputaLa,i.finalizataLa,i.scorBrut,i.notaFinala};}
+RezultatEvaluarePublicEdu rezultatPublic(
+    const RezultatEvaluareInregistrare& r) {
+    return {r.evaluareId,
+            r.cursId,
+            r.numeCurs,
+            r.numeEvaluare,
+            r.tipEvaluare == "chestionar" ? TipEvaluareEdu::Chestionar
+                                           : TipEvaluareEdu::ExamenFinal,
+            r.studentId,
+            r.numeStudent,
+            r.prenumeStudent,
+            r.punctajMaxim,
+            r.finalizataLa.has_value(),
+            r.incercareId,
+            r.scorBrut,
+            r.notaFinala,
+            r.finalizataLa};
+}
 }
 
 ServerEdu::ServerEdu(std::uint16_t portNou, std::string adresaIpNoua)
@@ -348,6 +368,9 @@ RaspunsEdu ServerEdu::distribuieCerere(const CerereEdu& cerere,
         case TipCerereEdu::PornesteIncercare: case TipCerereEdu::ObtineIncercare:
         case TipCerereEdu::SalveazaRaspuns: case TipCerereEdu::FinalizeazaIncercare:
             return proceseazaCerereIncercare(cerere,sesiune);
+        case TipCerereEdu::ListeazaRezultateleMele:
+        case TipCerereEdu::ListeazaRezultateleEvaluarii:
+            return proceseazaCerereRezultat(cerere, sesiune);
         case TipCerereEdu::InscrieStudentLaCurs: case TipCerereEdu::RetrageStudentDeLaCurs:
         case TipCerereEdu::ListeazaCursuriInscrise: case TipCerereEdu::ListeazaStudentiCurs:
         case TipCerereEdu::VerificaInscriere:
@@ -364,7 +387,20 @@ RaspunsEdu ServerEdu::distribuieCerere(const CerereEdu& cerere,
                            "Tip de cerere necunoscut.");
         }
     } catch (const ExceptieEdu& exceptie) {
-        const CodRezultatEdu cod = clasificaExceptie(exceptie.what());
+        if (std::string(exceptie.what()) == "EVALUARE_DEJA_SUSTINUTA") {
+            return raspuns(cerere.idCerere, CodRezultatEdu::Conflict,
+                           "Evaluarea a fost deja inceputa sau sustinuta.");
+        }
+        const std::string mesaj = exceptie.what();
+        if (mesaj == "Studentul este deja inscris la acest curs." ||
+            mesaj == "Studentul nu exista." ||
+            mesaj == "Utilizatorul selectat nu este student." ||
+            mesaj == "Profesorul nu poate fi inscris ca student." ||
+            mesaj == "Id-ul studentului este invalid." ||
+            mesaj == "Id-ul cursului este invalid.") {
+            return raspuns(cerere.idCerere, clasificaExceptie(mesaj), mesaj);
+        }
+        const CodRezultatEdu cod = clasificaExceptie(mesaj);
         return raspuns(cerere.idCerere, cod, mesajPublicPentru(cod));
     } catch (...) {
         return raspuns(cerere.idCerere, CodRezultatEdu::EroareInterna,
@@ -453,8 +489,7 @@ RaspunsEdu ServerEdu::proceseazaObtineCurs(
 RaspunsEdu ServerEdu::proceseazaCreeazaCurs(
     const CerereEdu& cerere,
     const SesiuneClient& sesiune) {
-    verificaCampuri(cerere, {CampEdu::Nume, CampEdu::ParinteId,
-                              CampEdu::ProprietarId});
+    verificaCampuri(cerere, {CampEdu::Nume, CampEdu::ParinteId});
     verificaAutentificare(sesiune);
     CerereCreareCurs creare;
     creare.actorId = sesiune.utilizatorId;
@@ -462,14 +497,8 @@ RaspunsEdu ServerEdu::proceseazaCreeazaCurs(
     if (const auto parinte = ProtocolEdu::cautaCamp(cerere.campuri, CampEdu::ParinteId)) {
         creare.parinteId = convertesteId(*parinte, "Id-ul cursului parinte");
     }
-    if (sesiune.rol == "profesor") {
-        creare.proprietarId = sesiune.utilizatorId;
-    } else if (sesiune.rol == "administrator") {
-        creare.proprietarId = convertesteId(
-            campObligatoriu(cerere, CampEdu::ProprietarId), "Id-ul proprietarului");
-    } else {
-        throw ExceptieEdu("Studentul nu poate crea cursuri.");
-    }
+    if (sesiune.rol != "profesor") throw ExceptieEdu("Doar profesorii pot crea cursuri.");
+    creare.proprietarId = sesiune.utilizatorId;
     const int id = cursService->creeazaCurs(creare);
     RaspunsEdu rezultat = raspuns(
         cerere.idCerere, CodRezultatEdu::Succes, "Cursul a fost creat.");
@@ -671,10 +700,37 @@ RaspunsEdu ServerEdu::proceseazaCerereIncercare(const CerereEdu& c,const Sesiune
     verificaCampuri(c,{CampEdu::IncercareId});const auto finala=evaluareService->finalizeazaIncercare(s.utilizatorId,convertesteId(campObligatoriu(c,CampEdu::IncercareId),"Id-ul incercarii"));RaspunsEdu r=raspuns(c.idCerere,CodRezultatEdu::Succes,"Incercarea a fost finalizata.");r.campuri.push_back({static_cast<std::uint16_t>(CampEdu::Incercare),ProtocolEdu::codificaIncercare(incercarePublica(finala))});return r;
 }
 
+RaspunsEdu ServerEdu::proceseazaCerereRezultat(const CerereEdu& c,
+                                               const SesiuneClient& s) {
+    verificaAutentificare(s);
+    if (!evaluareService) {
+        throw ExceptieEdu("Serviciul de evaluari nu este disponibil.");
+    }
+    std::vector<RezultatEvaluareInregistrare> rezultate;
+    if (c.tip == TipCerereEdu::ListeazaRezultateleMele) {
+        verificaCampuri(c, {});
+        rezultate = evaluareService->listeazaRezultateleStudentului(s.utilizatorId);
+    } else {
+        verificaCampuri(c, {CampEdu::EvaluareId});
+        rezultate = evaluareService->listeazaRezultateleEvaluarii(
+            s.utilizatorId,
+            convertesteId(campObligatoriu(c, CampEdu::EvaluareId),
+                          "Id-ul evaluarii"));
+    }
+    RaspunsEdu rezultat = raspuns(
+        c.idCerere, CodRezultatEdu::Succes, "Rezultatele au fost citite.");
+    for (const auto& inregistrare : rezultate) {
+        rezultat.campuri.push_back(
+            {static_cast<std::uint16_t>(CampEdu::RezultatEvaluare),
+             ProtocolEdu::codificaRezultatEvaluare(rezultatPublic(inregistrare))});
+    }
+    return rezultat;
+}
+
 RaspunsEdu ServerEdu::proceseazaCerereInscriere(const CerereEdu& c,const SesiuneClient& s){
     verificaAutentificare(s);if(!inscriereService)throw ExceptieEdu("Serviciul de inscrieri nu este disponibil.");
     if(c.tip==TipCerereEdu::ListeazaCursuriInscrise){verificaCampuri(c,{});RaspunsEdu r=raspuns(c.idCerere,CodRezultatEdu::Succes,"Cursurile inscrise au fost citite.");for(const auto&x:inscriereService->listeazaCursuriInscrise(s.utilizatorId))r.campuri.push_back({static_cast<std::uint16_t>(CampEdu::Curs),ProtocolEdu::codificaCurs(cursPublic(x))});return r;}
-    if(c.tip==TipCerereEdu::ListeazaStudentiCurs){verificaCampuri(c,{CampEdu::CursId});const int curs=convertesteId(campObligatoriu(c,CampEdu::CursId),"Id-ul cursului");RaspunsEdu r=raspuns(c.idCerere,CodRezultatEdu::Succes,"Studentii au fost cititi.");for(const auto&x:inscriereService->listeazaStudentiCurs(s.utilizatorId,curs))r.campuri.push_back({static_cast<std::uint16_t>(CampEdu::StudentPublic),ProtocolEdu::codificaStudent({x.id,x.email})});return r;}
+    if(c.tip==TipCerereEdu::ListeazaStudentiCurs){verificaCampuri(c,{CampEdu::CursId});const int curs=convertesteId(campObligatoriu(c,CampEdu::CursId),"Id-ul cursului");RaspunsEdu r=raspuns(c.idCerere,CodRezultatEdu::Succes,"Studentii au fost cititi.");for(const auto&x:inscriereService->listeazaStudentiCurs(s.utilizatorId,curs))r.campuri.push_back({static_cast<std::uint16_t>(CampEdu::StudentPublic),ProtocolEdu::codificaStudent({x.id,x.nume,x.prenume})});return r;}
     verificaCampuri(c,{CampEdu::StudentId,CampEdu::CursId});const int curs=convertesteId(campObligatoriu(c,CampEdu::CursId),"Id-ul cursului");int student=s.utilizatorId;if(const auto x=ProtocolEdu::cautaCamp(c.campuri,CampEdu::StudentId))student=convertesteId(*x,"Id-ul studentului");
     if(c.tip==TipCerereEdu::VerificaInscriere){RaspunsEdu r=raspuns(c.idCerere,CodRezultatEdu::Succes,"Inscrierea a fost verificata.");r.campuri.push_back({static_cast<std::uint16_t>(CampEdu::Inscris),inscriereService->verificaInscriere(s.utilizatorId,student,curs)?"1":"0"});return r;}
     if(c.tip==TipCerereEdu::InscrieStudentLaCurs)inscriereService->inscrieStudent(s.utilizatorId,student,curs);else inscriereService->retrageStudent(s.utilizatorId,student,curs);return raspuns(c.idCerere,CodRezultatEdu::Succes,"Inscrierea a fost actualizata.");

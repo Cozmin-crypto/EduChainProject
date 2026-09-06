@@ -60,15 +60,6 @@ void adaugaStudent(ConectorBazaDate& conector, int id) {
         "INSERT INTO studenti (utilizator_id) VALUES (?);", {std::to_string(id)});
 }
 
-void adaugaAdministrator(ConectorBazaDate& conector, int id) {
-    conector.executaInterogareParametrizata(
-        "INSERT INTO personal (utilizator_id, departament, data_angajarii) "
-        "VALUES (?, ?, ?);", {std::to_string(id), "Administratie", "2026-07-19"});
-    conector.executaInterogareParametrizata(
-        "INSERT INTO administratori (utilizator_id, nivel_acces) VALUES (?, ?);",
-        {std::to_string(id), "10"});
-}
-
 template <typename Operatie>
 void ruleazaConexiune(ServerEdu& server, Operatie operatie) {
     std::exception_ptr eroareServer;
@@ -156,12 +147,9 @@ int main() {
             "profesor2.lectii@example.ro", "parola-2", "profesor");
         const int student = utilizatori.adaugaUtilizator(
             "student.lectii@example.ro", "parola-student", "student");
-        const int administrator = utilizatori.adaugaUtilizator(
-            "admin.lectii@example.ro", "parola-admin", "administrator");
         adaugaProfesor(conector, profesor1);
         adaugaProfesor(conector, profesor2);
         adaugaStudent(conector, student);
-        adaugaAdministrator(conector, administrator);
 
         const int curs1 = cursuri.creeazaCurs(
             {profesor1, profesor1, "Curs lectii 1", std::nullopt});
@@ -171,7 +159,8 @@ int main() {
             {profesor1, curs1, "Text initial", "text", "continut", 8, 1,
              std::nullopt, std::nullopt});
         const int videoInitial = lectii.creeazaLectie(
-            {profesor1, curs1, "Video initial", "video", "video.mp4", 1024,
+            {profesor1, curs1, "Video initial", "video",
+             "https://video.educhain.test/initial.mp4", 1024,
              std::nullopt, 60, std::string("h264")});
 
         {
@@ -249,7 +238,14 @@ int main() {
                 lectieText = client.creeazaLectieText(
                     curs1, "Text SQL", "Text '); DROP TABLE lectii; --", 32, 5);
                 lectieVideo = client.creeazaLectieVideo(
-                    curs1, "Video retea", "fisier.mp4", 2048, 120, "vp9");
+                    curs1, "Video retea",
+                    "https://video.educhain.test/retea.mp4", 2048, 120, "vp9");
+                verifica(aruncaExceptieEdu([&] {
+                             client.creeazaLectieVideo(
+                                 curs1, "Video fara URL", "fisier-local.mp4",
+                                 100, 10, "h264");
+                         }),
+                         "lectia video fara link http/https a fost acceptata");
                 verifica(client.obtineLectie(lectieText)->continut ==
                              "Text '); DROP TABLE lectii; --",
                          "caracterele SQL nu au fost tratate literal");
@@ -279,7 +275,7 @@ int main() {
                 actualizare.cursId = curs1;
                 actualizare.nume = "Text devenit video";
                 actualizare.tip = TipLectieEdu::Video;
-                actualizare.continut = "convertit.mp4";
+                actualizare.continut = "https://video.educhain.test/convertit.mp4";
                 actualizare.dimensiuneOcteti = 4096;
                 actualizare.durata = 90;
                 actualizare.codec = "h265";
@@ -318,7 +314,8 @@ int main() {
                     TipCerereEdu::CreeazaLectieVideo,
                     {{static_cast<std::uint16_t>(CampEdu::CursId), std::to_string(curs1)},
                      {static_cast<std::uint16_t>(CampEdu::Nume), "Video retea"},
-                     {static_cast<std::uint16_t>(CampEdu::Continut), "duplicat"},
+                     {static_cast<std::uint16_t>(CampEdu::Continut),
+                      "https://video.educhain.test/duplicat.mp4"},
                      {static_cast<std::uint16_t>(CampEdu::DimensiuneOcteti), "1"},
                      {static_cast<std::uint16_t>(CampEdu::Durata), "1"},
                      {static_cast<std::uint16_t>(CampEdu::Codec), "x"}}));
@@ -359,18 +356,6 @@ int main() {
                 verifica(stergereStraina.cod == CodRezultatEdu::AccesInterzis &&
                              client.obtineLectie(textInitial).has_value(),
                          "profesorul neproprietar a sters lectia");
-            });
-
-            int lectieAdmin{};
-            ruleazaConexiune(server, [&](ClientEdu& client) {
-                client.autentifica("admin.lectii@example.ro", "parola-admin");
-                lectieAdmin = client.creeazaLectieText(
-                    curs2, "Lectie administrator", "continut", 8, 1);
-                verifica(client.obtineLectie(lectieAdmin).has_value(),
-                         "administratorul nu a creat lectia");
-                client.stergeLectie(lectieAdmin);
-                verifica(!client.obtineLectie(lectieAdmin).has_value(),
-                         "administratorul nu a sters lectia");
             });
 
             ruleazaConexiune(server, [&](ClientEdu& client) {

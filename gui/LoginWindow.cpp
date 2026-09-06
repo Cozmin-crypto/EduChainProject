@@ -10,7 +10,9 @@
 
 #include <QLineEdit>
 #include <QPushButton>
+#include <QScreen>
 #include <QString>
+#include <QTimer>
 
 #include <limits>
 
@@ -104,6 +106,13 @@ void LoginWindow::autentifica() {
 void LoginWindow::deschideInregistrare() {
     ui_->registerButton->setEnabled(false);
     RegisterWindow fereastra(context_, this);
+    QTimer::singleShot(0, &fereastra, [&fereastra] {
+        fereastra.adjustSize();
+        if (const QScreen* ecran = fereastra.screen()) {
+            fereastra.move(ecran->availableGeometry().center() -
+                           fereastra.rect().center());
+        }
+    });
     if (fereastra.exec() == QDialog::Accepted) {
         ui_->emailLineEdit->setText(fereastra.emailInregistrat());
         ui_->passwordLineEdit->clear();

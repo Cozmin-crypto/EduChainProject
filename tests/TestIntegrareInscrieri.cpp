@@ -1,14 +1,101 @@
 #include "ConectorBazaDate.h"
 #include "CursRepository.h"
-#include "CursService.h"
 #include "ExceptieEdu.h"
 #include "InscriereRepository.h"
 #include "InscriereService.h"
 #include "UtilizatorRepository.h"
+
 #include <chrono>
 #include <filesystem>
 #include <functional>
 #include <iostream>
 #include <stdexcept>
-namespace{void v(bool c,const char*m){if(!c)throw std::runtime_error(m);}bool ex(const std::function<void()>&f){try{f();}catch(const ExceptieEdu&){return true;}return false;}void prof(ConectorBazaDate&d,int id){d.executaInterogareParametrizata("INSERT INTO personal (utilizator_id,departament,data_angajarii) VALUES (?,?,?);",{std::to_string(id),"IT","2026-07-19"});d.executaInterogareParametrizata("INSERT INTO profesori(utilizator_id) VALUES (?);",{std::to_string(id)});}void stud(ConectorBazaDate&d,int id){d.executaInterogareParametrizata("INSERT INTO studenti(utilizator_id) VALUES (?);",{std::to_string(id)});}void adm(ConectorBazaDate&d,int id){d.executaInterogareParametrizata("INSERT INTO personal (utilizator_id,departament,data_angajarii) VALUES (?,?,?);",{std::to_string(id),"A","2026-07-19"});d.executaInterogareParametrizata("INSERT INTO administratori(utilizator_id,nivel_acces) VALUES (?,?);",{std::to_string(id),"10"});}}
-int main(){auto p=std::filesystem::temp_directory_path()/("educhain_inscrieri_"+std::to_string(std::chrono::high_resolution_clock::now().time_since_epoch().count())+".db");ConectorBazaDate db;try{db.deschideConexiune(p.string());UtilizatorRepository u(db);CursRepository c(db);InscriereRepository r(db);int p1=u.adaugaUtilizator("p1@x.ro","p","profesor"),p2=u.adaugaUtilizator("p2@x.ro","p","profesor"),s1=u.adaugaUtilizator("s1@x.ro","s","student"),s2=u.adaugaUtilizator("s2@x.ro","s","student"),a=u.adaugaUtilizator("a@x.ro","a","administrator");prof(db,p1);prof(db,p2);stud(db,s1);stud(db,s2);adm(db,a);int c1=c.adaugaCurs("Curs ' SQL --",std::nullopt,p1),c2=c.adaugaCurs("Alt curs",std::nullopt,p2);r.inscrieStudentLaCurs(s1,c1);v(r.esteInscris(s1,c1),"inscriere valida");v(ex([&]{r.inscrieStudentLaCurs(s1,c1);}),"duplicat");v(ex([&]{r.inscrieStudentLaCurs(99999,c1);}),"student inexistent");v(ex([&]{r.inscrieStudentLaCurs(p1,c1);}),"rol invalid");v(ex([&]{r.inscrieStudentLaCurs(s1,99999);}),"curs inexistent");v(r.listeazaCursuriStudent(s1).size()==1,"listare cursuri");v(r.listeazaStudentiCurs(c1).size()==1,"listare studenti");InscriereService svc(r,c,u);svc.inscrieStudent(s2,s2,c2);v(ex([&]{svc.verificaInscriere(s1,s2,c2);}),"student vede alt student");v(ex([&]{svc.listeazaStudentiCurs(p1,c2);}),"profesor curs strain");v(svc.listeazaStudentiCurs(p2,c2).size()==1,"profesor proprietar");svc.retrageStudent(a,s1,c1);v(!r.esteInscris(s1,c1),"retragere admin");v(ex([&]{r.retrageStudentDeLaCurs(s1,c1);}),"retragere inexistenta");db.inchideConexiune();std::filesystem::remove(p);std::cout<<"Test integrare inscrieri: SUCCES\n";return 0;}catch(const std::exception&e){db.inchideConexiune();std::filesystem::remove(p);std::cerr<<e.what()<<'\n';return 1;}}
+#include <string>
+
+namespace {
+void verifica(bool conditie, const char* mesaj) {
+    if (!conditie) throw std::runtime_error(mesaj);
+}
+
+std::string mesajExceptie(const std::function<void()>& operatie) {
+    try { operatie(); } catch (const ExceptieEdu& eroare) { return eroare.what(); }
+    return {};
+}
+
+void adaugaProfesor(ConectorBazaDate& db, int id) {
+    db.executaInterogareParametrizata(
+        "INSERT INTO personal (utilizator_id,departament,data_angajarii) "
+        "VALUES (?,?,?);", {std::to_string(id), "IT", "2026-07-19"});
+    db.executaInterogareParametrizata(
+        "INSERT INTO profesori(utilizator_id) VALUES (?);", {std::to_string(id)});
+}
+
+void adaugaStudent(ConectorBazaDate& db, int id) {
+    db.executaInterogareParametrizata(
+        "INSERT INTO studenti(utilizator_id) VALUES (?);", {std::to_string(id)});
+}
+}
+
+int main() {
+    const auto cale = std::filesystem::temp_directory_path() /
+        ("educhain_inscrieri_" + std::to_string(
+            std::chrono::high_resolution_clock::now().time_since_epoch().count()) + ".db");
+    ConectorBazaDate db;
+    try {
+        db.deschideConexiune(cale.string());
+        UtilizatorRepository utilizatori(db);
+        CursRepository cursuri(db);
+        InscriereRepository repository(db);
+        InscriereService serviciu(repository, cursuri, utilizatori);
+
+        const int profesor1 = utilizatori.adaugaUtilizator(
+            "p1@x.ro", "p", "profesor", "Ionescu", "Mihai");
+        const int profesor2 = utilizatori.adaugaUtilizator(
+            "p2@x.ro", "p", "profesor", "Marin", "Elena");
+        const int student1 = utilizatori.adaugaUtilizator(
+            "s1@x.ro", "s", "student", "Popescu", "Ion");
+        const int student2 = utilizatori.adaugaUtilizator(
+            "s2@x.ro", "s", "student", "Georgescu", "Ana");
+        adaugaProfesor(db, profesor1); adaugaProfesor(db, profesor2);
+        adaugaStudent(db, student1); adaugaStudent(db, student2);
+
+        const int curs1 = cursuri.adaugaCurs("Curs 1", std::nullopt, profesor1);
+        const int curs2 = cursuri.adaugaCurs("Curs 2", std::nullopt, profesor2);
+
+        serviciu.inscrieStudent(profesor1, student1, curs1);
+        verifica(repository.esteInscris(student1, curs1),
+                 "studentul existent nu a fost inscris");
+        verifica(mesajExceptie([&] { serviciu.inscrieStudent(profesor1, student1, curs1); }) ==
+                     "Studentul este deja inscris la acest curs.",
+                 "duplicatul nu are mesajul public asteptat");
+        verifica(mesajExceptie([&] { serviciu.inscrieStudent(profesor1, 99999, curs1); }) ==
+                     "Studentul nu exista.",
+                 "studentul inexistent nu este diferentiat");
+        verifica(mesajExceptie([&] { serviciu.inscrieStudent(profesor1, profesor2, curs1); }) ==
+                     "Utilizatorul selectat nu este student.",
+                 "rolul profesor nu este respins");
+        verifica(!mesajExceptie([&] { serviciu.inscrieStudent(profesor2, student2, curs1); }).empty(),
+                 "profesorul strain a inscris studentul");
+        verifica(!mesajExceptie([&] { serviciu.inscrieStudent(profesor1, student2, 99999); }).empty(),
+                 "cursul inexistent a fost acceptat");
+
+        const auto studenti = serviciu.listeazaStudentiCurs(profesor1, curs1);
+        verifica(studenti.size() == 1 && studenti.front().nume == "Popescu" &&
+                     studenti.front().prenume == "Ion",
+                 "lista studentilor nu contine numele corect");
+
+        serviciu.inscrieStudent(student2, student2, curs2);
+        verifica(repository.esteInscris(student2, curs2),
+                 "auto-inscrierea studentului a fost stricata");
+
+        db.inchideConexiune();
+        std::filesystem::remove(cale);
+        std::cout << "Test integrare inscrieri: SUCCES\n";
+        return 0;
+    } catch (const std::exception& eroare) {
+        db.inchideConexiune();
+        std::filesystem::remove(cale);
+        std::cerr << eroare.what() << '\n';
+        return 1;
+    }
+}

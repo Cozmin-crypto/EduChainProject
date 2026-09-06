@@ -4,6 +4,7 @@
 
 #include <QWidget>
 #include <memory>
+#include <unordered_set>
 #include <vector>
 
 class ApplicationContext;
@@ -23,12 +24,14 @@ private slots:
     void incarcaCursurilePentruLectii();
     void incarcaLectiileCursului();
     void afiseazaLectiaSelectata();
+    void deschideVideo();
     void incarcaCursurilePentruEvaluari();
     void incarcaEvaluarileCursului();
     void afiseazaEvaluareaSelectata();
     void pornesteEvaluarea();
     void actualizeazaProgresulEvaluarii();
     void finalizeazaEvaluarea();
+    void incarcaRezultateleMele();
 private:
     std::unique_ptr<Ui::StudentDashboard> ui_;
     std::shared_ptr<ApplicationContext> context_;
@@ -37,6 +40,7 @@ private:
     int incercareEvaluareId_{};
     bool incercareEvaluareFinalizata_{};
     bool finalizareEvaluareInCurs_{};
+    std::unordered_set<int> evaluariSustinute_;
 
     bool poateExecutaCereri(class QLabel* statusLabel);
     void actualizeazaStareConexiune();

@@ -4,7 +4,10 @@
 class CursRepository;
 class UtilizatorRepository;
 class InscriereService {
-    InscriereRepository& inscrieri; CursRepository& cursuri; ReguliAccesService reguli;
+    InscriereRepository& inscrieri;
+    CursRepository& cursuri;
+    UtilizatorRepository& utilizatori;
+    ReguliAccesService reguli;
     void verificaAdministrare(int actorId,int studentId,int cursId);
 public:
     InscriereService(InscriereRepository&,CursRepository&,UtilizatorRepository&);

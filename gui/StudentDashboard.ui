@@ -3,14 +3,16 @@
  <class>StudentDashboard</class>
  <widget class="QWidget" name="StudentDashboard">
   <layout class="QVBoxLayout" name="mainLayout">
-   <item><widget class="QLabel" name="welcomeLabel"><property name="text"><string>Dashboard Student</string></property><property name="alignment"><set>Qt::AlignmentFlag::AlignCenter</set></property></widget></item>
+   <item><widget class="QLabel" name="welcomeLabel"><property name="text"><string>Spațiul Studentului</string></property><property name="alignment"><set>Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set></property></widget></item>
    <item><layout class="QHBoxLayout" name="detailsLayout">
-    <item><widget class="QLabel" name="userLabel"><property name="text"><string>Utilizator:</string></property></widget></item>
-    <item><widget class="QLabel" name="roleLabel"><property name="text"><string>Rol:</string></property></widget></item>
-    <item><widget class="QLabel" name="connectionLabel"><property name="text"><string>Neconectat</string></property></widget></item>
+    <item><widget class="QLabel" name="userLabel"><property name="visible"><bool>false</bool></property><property name="text"><string>Utilizator:</string></property></widget></item>
+    <item><widget class="QLabel" name="roleLabel"><property name="visible"><bool>false</bool></property><property name="text"><string>Rol:</string></property></widget></item>
+    <item><widget class="QLabel" name="connectionLabel"><property name="visible"><bool>false</bool></property><property name="text"><string>Neconectat</string></property></widget></item>
    </layout></item>
    <item><layout class="QHBoxLayout" name="contentLayout">
-    <item><layout class="QVBoxLayout" name="navigationLayout">
+    <item><widget class="QFrame" name="sidebarFrame"><property name="minimumSize"><size><width>210</width><height>0</height></size></property><property name="maximumSize"><size><width>230</width><height>16777215</height></size></property><layout class="QVBoxLayout" name="navigationLayout"><property name="leftMargin"><number>14</number></property><property name="topMargin"><number>18</number></property><property name="rightMargin"><number>14</number></property><property name="bottomMargin"><number>18</number></property><property name="spacing"><number>6</number></property>
+     <item><widget class="QLabel" name="sidebarBrandLabel"><property name="text"><string>EduChain</string></property></widget></item>
+     <item><widget class="QLabel" name="navCaptionLabel"><property name="text"><string>SPAȚIU STUDENT</string></property></widget></item>
      <item><widget class="QPushButton" name="homeButton"><property name="text"><string>Acasă</string></property></widget></item>
      <item><widget class="QPushButton" name="myCoursesButton"><property name="text"><string>Cursurile mele</string></property></widget></item>
      <item><widget class="QPushButton" name="availableCoursesButton"><property name="text"><string>Cursuri disponibile</string></property></widget></item>
@@ -18,9 +20,9 @@
      <item><widget class="QPushButton" name="evaluationsButton"><property name="text"><string>Evaluări</string></property></widget></item>
      <item><widget class="QPushButton" name="resultsButton"><property name="text"><string>Rezultate</string></property></widget></item>
      <item><spacer name="navSpacer"><property name="orientation"><enum>Qt::Orientation::Vertical</enum></property><property name="sizeHint" stdset="0"><size><width>20</width><height>40</height></size></property></spacer></item>
-    </layout></item>
+    </layout></widget></item>
     <item><widget class="QStackedWidget" name="pagesStack">
-     <widget class="QWidget" name="homePage"><layout class="QVBoxLayout" name="homeLayout"><item><widget class="QLabel" name="homeLabel"><property name="text"><string>Funcționalitățile Studentului vor fi implementate în pasul următor.</string></property><property name="alignment"><set>Qt::AlignmentFlag::AlignCenter</set></property><property name="wordWrap"><bool>true</bool></property></widget></item></layout></widget>
+     <widget class="QWidget" name="homePage"><layout class="QVBoxLayout" name="homeLayout"><item><widget class="QLabel" name="homeLabel"><property name="text"><string>Bine ai venit în spațiul tău EduChain</string></property><property name="alignment"><set>Qt::AlignmentFlag::AlignCenter</set></property><property name="wordWrap"><bool>true</bool></property></widget></item><item><widget class="QLabel" name="homeSummaryLabel"><property name="text"><string>Accesează rapid cursurile, lecțiile, evaluările și rezultatele tale.</string></property><property name="alignment"><set>Qt::AlignmentFlag::AlignCenter</set></property><property name="wordWrap"><bool>true</bool></property></widget></item><item><layout class="QHBoxLayout" name="homeCardsLayout"><item><widget class="QGroupBox" name="coursesCard"><property name="title"><string>Cursuri înscrise</string></property><layout class="QVBoxLayout" name="coursesCardLayout"><item><widget class="QLabel" name="coursesCardLabel"><property name="text"><string>Conținutul educațional ales de tine</string></property><property name="wordWrap"><bool>true</bool></property></widget></item></layout></widget></item><item><widget class="QGroupBox" name="lessonsCard"><property name="title"><string>Lecții disponibile</string></property><layout class="QVBoxLayout" name="lessonsCardLayout"><item><widget class="QLabel" name="lessonsCardLabel"><property name="text"><string>Materiale text și video</string></property><property name="wordWrap"><bool>true</bool></property></widget></item></layout></widget></item><item><widget class="QGroupBox" name="evaluationsCard"><property name="title"><string>Evaluări disponibile</string></property><layout class="QVBoxLayout" name="evaluationsCardLayout"><item><widget class="QLabel" name="evaluationsCardLabel"><property name="text"><string>Chestionare și examene finale</string></property><property name="wordWrap"><bool>true</bool></property></widget></item></layout></widget></item><item><widget class="QGroupBox" name="resultsCard"><property name="title"><string>Evaluări susținute</string></property><layout class="QVBoxLayout" name="resultsCardLayout"><item><widget class="QLabel" name="resultsCardLabel"><property name="text"><string>Scoruri și note într-un singur loc</string></property><property name="wordWrap"><bool>true</bool></property></widget></item></layout></widget></item></layout></item><item><spacer name="homeSpacer"><property name="orientation"><enum>Qt::Orientation::Vertical</enum></property><property name="sizeHint" stdset="0"><size><width>20</width><height>40</height></size></property></spacer></item></layout></widget>
      <widget class="QWidget" name="myCoursesPage"><layout class="QVBoxLayout" name="myCoursesLayout">
       <item><widget class="QLabel" name="myCoursesTitleLabel"><property name="text"><string>Cursurile mele</string></property></widget></item>
       <item><widget class="QListWidget" name="myCoursesList"/></item>
@@ -54,6 +56,7 @@
         <item><widget class="QLabel" name="lessonTitleLabel"><property name="text"><string>Nicio lecție selectată</string></property><property name="wordWrap"><bool>true</bool></property></widget></item>
         <item><widget class="QLabel" name="lessonMetadataLabel"><property name="text"><string/></property><property name="wordWrap"><bool>true</bool></property></widget></item>
         <item><widget class="QTextBrowser" name="lessonContent"><property name="placeholderText"><string>Conținutul lecției va apărea aici.</string></property></widget></item>
+        <item><widget class="QPushButton" name="openVideoButton"><property name="text"><string>Deschide video</string></property><property name="visible"><bool>false</bool></property></widget></item>
        </layout></widget>
       </widget></item>
      </layout></widget>
@@ -86,13 +89,21 @@
         <item><widget class="QLabel" name="evaluationActionStatusLabel"><property name="text"><string/></property><property name="wordWrap"><bool>true</bool></property></widget></item>
         <item><widget class="QLabel" name="evaluationResultLabel"><property name="text"><string/></property><property name="wordWrap"><bool>true</bool></property></widget></item>
         <item><layout class="QHBoxLayout" name="evaluationActionsLayout">
-         <item><widget class="QPushButton" name="startEvaluationButton"><property name="text"><string>Începe evaluarea</string></property></widget></item>
+         <item><widget class="QPushButton" name="startEvaluationButton"><property name="text"><string>Susține evaluarea</string></property></widget></item>
          <item><widget class="QPushButton" name="finalizeEvaluationButton"><property name="text"><string>Trimite și finalizează</string></property></widget></item>
         </layout></item>
        </layout></widget>
       </widget></item>
      </layout></widget>
-     <widget class="QWidget" name="resultsPage"><layout class="QVBoxLayout" name="resultsLayout"><item><widget class="QLabel" name="resultsLabel"><property name="text"><string>Rezultatele vor fi implementate într-un pas ulterior.</string></property><property name="alignment"><set>Qt::AlignmentFlag::AlignCenter</set></property></widget></item></layout></widget>
+     <widget class="QWidget" name="resultsPage"><layout class="QVBoxLayout" name="resultsLayout">
+      <item><widget class="QLabel" name="resultsTitleLabel"><property name="text"><string>Rezultatele mele</string></property></widget></item>
+      <item><widget class="QLabel" name="resultsDescriptionLabel"><property name="text"><string>Vezi situația tuturor evaluărilor din cursurile la care ești înscris.</string></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+      <item><widget class="QTableWidget" name="resultsTable"><property name="editTriggers"><set>QAbstractItemView::EditTrigger::NoEditTriggers</set></property><property name="selectionBehavior"><enum>QAbstractItemView::SelectionBehavior::SelectRows</enum></property><property name="alternatingRowColors"><bool>true</bool></property>
+       <column><property name="text"><string>Curs</string></property></column><column><property name="text"><string>Evaluare</string></property></column><column><property name="text"><string>Tip</string></property></column><column><property name="text"><string>Scor</string></property></column><column><property name="text"><string>Punctaj maxim</string></property></column><column><property name="text"><string>Notă</string></property></column><column><property name="text"><string>Data</string></property></column><column><property name="text"><string>Status</string></property></column>
+      </widget></item>
+      <item><widget class="QLabel" name="resultsStatusLabel"><property name="text"><string/></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+      <item><widget class="QPushButton" name="refreshResultsButton"><property name="text"><string>Reîmprospătează rezultatele</string></property></widget></item>
+     </layout></widget>
     </widget></item>
    </layout></item>
   </layout>

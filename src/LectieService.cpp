@@ -25,7 +25,7 @@ void LectieService::verificaAccesCitireLectie(int actorId, int cursId) {
         inscrieri->verificaAccesStudentLaCurs(actorId, cursId);
         return;
     }
-    reguli.verificaAdministratorSauProprietar(actorId, obtineCursExistent(cursId));
+    reguli.verificaProfesorProprietar(actorId, obtineCursExistent(cursId));
 }
 
 std::vector<LectieInregistrare> LectieService::listeazaDupaCurs(int actorId,int cursId){verificaAccesCitireLectie(actorId,cursId);return lectii.listeazaDupaCurs(cursId);}
@@ -49,7 +49,7 @@ std::optional<LectieInregistrare> LectieService::obtineLectie(int lectieId) {
 
 int LectieService::creeazaLectie(const CerereSalvareLectie& cerere) {
     const auto curs = obtineCursExistent(cerere.cursId);
-    reguli.verificaAdministratorSauProprietar(cerere.actorId, curs);
+    reguli.verificaProfesorProprietar(cerere.actorId, curs);
     return lectii.adaugaLectie(
         curs.id, curs.proprietarId, cerere.nume, cerere.tip, cerere.continut,
         cerere.dimensiuneOcteti, cerere.numarCuvinte, cerere.durata, cerere.codec);
@@ -57,10 +57,10 @@ int LectieService::creeazaLectie(const CerereSalvareLectie& cerere) {
 
 bool LectieService::actualizeazaLectie(const CerereActualizareLectie& cerere) {
     const auto lectie = obtineLectieExistenta(cerere.lectieId);
-    reguli.verificaAdministratorSauProprietar(
+    reguli.verificaProfesorProprietar(
         cerere.actorId, obtineCursExistent(lectie.cursId));
     const auto cursDestinatie = obtineCursExistent(cerere.cursId);
-    reguli.verificaAdministratorSauProprietar(cerere.actorId, cursDestinatie);
+    reguli.verificaProfesorProprietar(cerere.actorId, cursDestinatie);
     return lectii.actualizeazaLectie(
         lectie.id, cursDestinatie.id, cursDestinatie.proprietarId,
         cerere.nume, cerere.tip, cerere.continut, cerere.dimensiuneOcteti,
@@ -69,7 +69,7 @@ bool LectieService::actualizeazaLectie(const CerereActualizareLectie& cerere) {
 
 bool LectieService::stergeLectie(int actorId, int lectieId) {
     const auto lectie = obtineLectieExistenta(lectieId);
-    reguli.verificaAdministratorSauProprietar(
+    reguli.verificaProfesorProprietar(
         actorId, obtineCursExistent(lectie.cursId));
     return lectii.stergeLectie(lectieId);
 }

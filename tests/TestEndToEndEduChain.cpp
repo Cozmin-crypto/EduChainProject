@@ -58,16 +58,6 @@ void adaugaStudent(ConectorBazaDate& bazaDate, int utilizatorId) {
         {std::to_string(utilizatorId)});
 }
 
-void adaugaAdministrator(ConectorBazaDate& bazaDate, int utilizatorId) {
-    bazaDate.executaInterogareParametrizata(
-        "INSERT INTO personal (utilizator_id, departament, data_angajarii) "
-        "VALUES (?, ?, ?);",
-        {std::to_string(utilizatorId), "E2E", "2026-07-19"});
-    bazaDate.executaInterogareParametrizata(
-        "INSERT INTO administratori (utilizator_id, nivel_acces) VALUES (?, ?);",
-        {std::to_string(utilizatorId), "10"});
-}
-
 template <typename Operatie>
 void ruleazaConexiune(ServerEdu& server, Operatie operatie) {
     std::exception_ptr eroareServer;
@@ -130,8 +120,6 @@ int main() {
         LectieService lectii(lectiiRepository, cursuriRepository, utilizatori, inscrieri);
         EvaluareService evaluari(evaluariRepository, cursuriRepository, utilizatori, inscrieri);
 
-        const int administrator = utilizatori.adaugaUtilizator(
-            "administrator.e2e@example.ro", "admin-e2e", "administrator");
         const int profesorProprietar = utilizatori.adaugaUtilizator(
             "profesor.proprietar.e2e@example.ro", "profesor-e2e", "profesor");
         const int profesorStrain = utilizatori.adaugaUtilizator(
@@ -140,7 +128,6 @@ int main() {
             "student.inscris.e2e@example.ro", "student-e2e", "student");
         const int studentNeinscris = utilizatori.adaugaUtilizator(
             "student.neinscris.e2e@example.ro", "student-neinscris", "student");
-        adaugaAdministrator(bazaDate, administrator);
         adaugaProfesor(bazaDate, profesorProprietar);
         adaugaProfesor(bazaDate, profesorStrain);
         adaugaStudent(bazaDate, studentInscris);
@@ -150,6 +137,8 @@ int main() {
         int lectieTextId{};
         int lectieVideoId{};
         int evaluareId{};
+        int examenId{};
+        int intrebareExamenId{};
         int intrebareCorectaId{};
         int intrebareGresitaId{};
         int incercareId{};
@@ -174,13 +163,18 @@ int main() {
             lectieTextId = client.creeazaLectieText(
                 cursId, "Lectie text E2E", "Continut text", 13, 2);
             lectieVideoId = client.creeazaLectieVideo(
-                cursId, "Lectie video E2E", "continut-video", 1024, 60, "h264");
+                cursId, "Lectie video E2E",
+                "https://video.educhain.test/e2e.mp4", 1024, 60, "h264");
             evaluareId = client.creeazaChestionar(
                 {cursId, "Evaluare E2E", 30, true, 2, std::nullopt});
             intrebareCorectaId = client.adaugaIntrebare(
                 evaluareId, "Capitala Romaniei?", "Bucuresti", 1.0, 0);
             intrebareGresitaId = client.adaugaIntrebare(
                 evaluareId, "Cat este 2 + 2?", "4", 2.0, 1);
+            examenId = client.creeazaExamenFinal(
+                {cursId, "Examen final E2E", 60, true, std::nullopt, 0.5});
+            intrebareExamenId = client.adaugaIntrebare(
+                examenId, "Protocolul EduChain foloseste TCP?", "da", 4.0, 0);
             client.inscrieStudentLaCurs(studentInscris, cursId);
             const auto studenti = client.listeazaStudentiCurs(cursId);
             verifica(studenti.size() == 1 && studenti.front().id == studentInscris,
@@ -206,19 +200,34 @@ int main() {
             verifica(client.listeazaCursuri().size() == 1 &&
                          client.obtineCurs(cursId).has_value(),
                      "detaliile cursului inscris nu sunt accesibile");
+            const auto lectieVideo = client.obtineLectie(lectieVideoId);
             verifica(client.listeazaLectii(cursId).size() == 2 &&
                          client.obtineLectie(lectieTextId).has_value() &&
-                         client.obtineLectie(lectieVideoId).has_value(),
+                         lectieVideo.has_value() &&
+                         lectieVideo->continut ==
+                             "https://video.educhain.test/e2e.mp4",
                      "lectiile cursului inscris nu sunt accesibile");
-            verifica(client.listeazaEvaluari(cursId).size() == 1,
-                     "evaluarea cursului inscris nu este accesibila");
+            verifica(client.listeazaEvaluari(cursId).size() == 2,
+                     "evaluarile cursului inscris nu sunt accesibile");
             const auto intrebari = client.listeazaIntrebari(evaluareId);
             verifica(intrebari.size() == 2 &&
                          intrebari[0].enunt == "Capitala Romaniei?" &&
                          intrebari[1].enunt == "Cat este 2 + 2?",
                      "intrebarile publice sunt invalide");
+            const auto intrebariExamen = client.listeazaIntrebari(examenId);
+            verifica(intrebariExamen.size() == 1 &&
+                         intrebariExamen.front().id == intrebareExamenId,
+                     "intrebarea examenului final nu este accesibila");
+
+            const auto rezultateInitiale = client.listeazaRezultateleMele();
+            verifica(rezultateInitiale.size() == 2 &&
+                         !rezultateInitiale[0].sustinuta &&
+                         !rezultateInitiale[1].sustinuta,
+                     "statusul initial al evaluarilor este invalid");
 
             incercareId = client.pornesteIncercare(evaluareId);
+            verifica(esteRespins([&] { client.pornesteIncercare(evaluareId); }),
+                     "doua cereri consecutive au creat incercari duplicate");
             client.salveazaRaspuns(incercareId, intrebareCorectaId, "  bUcUrEsTi\t");
             client.salveazaRaspuns(incercareId, intrebareGresitaId, "3");
             const auto rezultat = client.finalizeazaIncercare(incercareId);
@@ -227,9 +236,44 @@ int main() {
                      "scorul sau nota calculata server-side sunt incorecte");
             verifica(esteRespins([&] {
                          client.salveazaRaspuns(incercareId, intrebareGresitaId, "4");
-                     }) && esteRespins([&] { client.finalizeazaIncercare(incercareId); }),
-                     "incercarea finalizata a putut fi modificata sau finalizata din nou");
+                     }) && esteRespins([&] { client.finalizeazaIncercare(incercareId); }) &&
+                         esteRespins([&] { client.pornesteIncercare(evaluareId); }),
+                     "incercarea finalizata a putut fi modificata, finalizata sau pornita din nou");
+
+            const int incercareExamen = client.pornesteIncercare(examenId);
+            client.salveazaRaspuns(incercareExamen, intrebareExamenId, "DA");
+            const auto rezultatExamen = client.finalizeazaIncercare(incercareExamen);
+            verifica(std::fabs(rezultatExamen.scorBrut - 4.0) < 0.0001 &&
+                         std::fabs(rezultatExamen.notaFinala - 10.0) < 0.0001,
+                     "rezultatul examenului final este incorect");
+
+            const auto rezultateFinale = client.listeazaRezultateleMele();
+            verifica(rezultateFinale.size() == 2 &&
+                         rezultateFinale[0].sustinuta && rezultateFinale[0].finalizataLa &&
+                         rezultateFinale[1].sustinuta && rezultateFinale[1].finalizataLa,
+                     "studentul nu isi poate lista rezultatele finalizate");
+            CerereEdu injectieStudent;
+            injectieStudent.tip = TipCerereEdu::ListeazaRezultateleMele;
+            injectieStudent.campuri = {
+                {static_cast<std::uint16_t>(CampEdu::StudentId),
+                 std::to_string(studentNeinscris)}};
+            verifica(client.executaCerere(injectieStudent).cod ==
+                         CodRezultatEdu::ValidareEsuata,
+                     "studentul poate injecta ID-ul altui student in lista de rezultate");
             client.deconecteaza();
+        });
+        ruleazaConexiune(server, [&](ClientEdu& client) {
+            client.autentifica("profesor.proprietar.e2e@example.ro", "profesor-e2e");
+            const auto rezultateChestionar =
+                client.listeazaRezultateleEvaluarii(evaluareId);
+            const auto rezultateExamen = client.listeazaRezultateleEvaluarii(examenId);
+            verifica(rezultateChestionar.size() == 1 &&
+                         rezultateChestionar.front().studentId == studentInscris &&
+                         rezultateChestionar.front().sustinuta &&
+                         std::fabs(rezultateChestionar.front().punctajMaxim - 3.0) < 0.0001 &&
+                         rezultateExamen.size() == 1 && rezultateExamen.front().sustinuta &&
+                         std::fabs(rezultateExamen.front().notaFinala - 10.0) < 0.0001,
+                     "profesorul proprietar nu vede rezultatele corecte ale studentului");
         });
         ruleazaConexiune(server, [&](ClientEdu& client) {
             client.autentifica("student.neinscris.e2e@example.ro", "student-neinscris");
@@ -239,6 +283,7 @@ int main() {
                          esteRespins([&] { client.listeazaLectii(cursId); }) &&
                          esteRespins([&] { client.listeazaEvaluari(cursId); }) &&
                          esteRespins([&] { client.listeazaIntrebari(evaluareId); }) &&
+                         esteRespins([&] { client.listeazaRezultateleEvaluarii(evaluareId); }) &&
                          esteRespins([&] { client.pornesteIncercare(evaluareId); }),
                      "studentul neinscris a accesat continutul cursului");
             verifica(esteRespins([&] { client.creeazaCurs("Interzis"); }) &&
@@ -262,6 +307,7 @@ int main() {
                          esteRespins([&] { client.listeazaEvaluari(cursId); }) &&
                          esteRespins([&] { client.obtineEvaluare(evaluareId); }) &&
                          esteRespins([&] { client.listeazaIntrebari(evaluareId); }) &&
+                         esteRespins([&] { client.listeazaRezultateleEvaluarii(evaluareId); }) &&
                          esteRespins([&] { client.actualizeazaCurs(cursId, "Curs furat"); }) &&
                          esteRespins([&] { client.stergeCurs(cursId); }) &&
                          esteRespins([&] {
@@ -271,28 +317,13 @@ int main() {
                          }) && esteRespins([&] {
                              client.adaugaIntrebare(evaluareId, "Intrebare straina", "x", 1.0, 2);
                          }) && esteRespins([&] {
+                             client.adaugaIntrebare(examenId, "Intrebare examen straina", "x", 1.0, 2);
+                         }) && esteRespins([&] {
                              client.inscrieStudentLaCurs(studentNeinscris, cursId);
                          }),
                      "profesorul strain a citit sau administrat cursul");
             verifica(client.trimiteCerere("PING") == "PONG",
                      "conexiunea nu a ramas functionala dupa eroare business");
-        });
-        ruleazaConexiune(server, [&](ClientEdu& client) {
-            client.autentifica("administrator.e2e@example.ro", "admin-e2e");
-            client.inscrieStudentLaCurs(studentNeinscris, cursId);
-            verifica(client.verificaInscriere(studentNeinscris, cursId),
-                     "administratorul nu poate administra inscrierea");
-            verifica(cursuriRepository.cautaDupaId(cursId)->proprietarId == profesorProprietar,
-                     "administratorul a devenit proprietarul cursului");
-
-            CerereEdu necunoscuta = cerereFaraActor(
-                static_cast<TipCerereEdu>(999));
-            const auto raspunsNecunoscut = client.executaCerere(necunoscuta);
-            verifica(raspunsNecunoscut.cod == CodRezultatEdu::CerereNecunoscuta ||
-                         raspunsNecunoscut.cod == CodRezultatEdu::ProtocolInvalid,
-                     "cererea necunoscuta nu a fost respinsa controlat");
-            verifica(client.trimiteCerere("PING") == "PONG",
-                     "conexiunea s-a rupt dupa cererea necunoscuta");
         });
         server.opresteNod();
     } // ServerEdu este distrus inaintea verificarilor de resurse Winsock.
@@ -302,11 +333,13 @@ int main() {
         verifica(lectiiRepository.listeazaDupaCurs(cursId).size() == 2,
                  "lectiile nu au fost persistate");
         verifica(evaluariRepository.cautaDupaId(evaluareId).has_value() &&
-                     evaluariRepository.listeazaIntrebari(evaluareId).size() == 2,
+                     evaluariRepository.listeazaIntrebari(evaluareId).size() == 2 &&
+                     evaluariRepository.cautaDupaId(examenId).has_value() &&
+                     evaluariRepository.listeazaIntrebari(examenId).size() == 1,
                  "evaluarea sau intrebarile nu au fost persistate");
         verifica(inscrieriRepository.esteInscris(studentInscris, cursId) &&
-                     inscrieriRepository.esteInscris(studentNeinscris, cursId),
-                 "inscrierile nu au fost persistate");
+                     !inscrieriRepository.esteInscris(studentNeinscris, cursId),
+                 "inscrierile sau refuzul profesorului strain nu au fost persistate corect");
         const auto incercare = evaluariRepository.cautaIncercareDupaId(incercareId);
         verifica(incercare.has_value() && incercare->finalizataLa.has_value() &&
                      std::fabs(incercare->scorBrut - 1.0) < 0.0001 &&

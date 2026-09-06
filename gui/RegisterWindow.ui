@@ -2,42 +2,51 @@
 <ui version="4.0">
  <class>RegisterWindow</class>
  <widget class="QDialog" name="RegisterWindow">
-  <property name="minimumSize"><size><width>500</width><height>430</height></size></property>
+  <property name="minimumSize"><size><width>720</width><height>600</height></size></property>
   <property name="windowTitle"><string>EduChain - Creare cont</string></property>
   <layout class="QVBoxLayout" name="mainLayout">
-   <item><widget class="QLabel" name="titleLabel"><property name="text"><string>Creare cont EduChain</string></property><property name="alignment"><set>Qt::AlignmentFlag::AlignCenter</set></property></widget></item>
-   <item>
-    <layout class="QHBoxLayout" name="connectionLayout">
-     <item><widget class="QLabel" name="connectionStatusLabel"><property name="text"><string>Neconectat</string></property></widget></item>
-     <item><widget class="QPushButton" name="retryConnectionButton"><property name="text"><string>Reîncearcă</string></property></widget></item>
-    </layout>
-   </item>
-   <item>
-    <layout class="QFormLayout" name="formLayout">
-     <item row="0" column="0"><widget class="QLabel" name="firstNameLabel"><property name="text"><string>Prenume</string></property></widget></item>
-     <item row="0" column="1"><widget class="QLineEdit" name="firstNameLineEdit"/></item>
-     <item row="1" column="0"><widget class="QLabel" name="lastNameLabel"><property name="text"><string>Nume</string></property></widget></item>
-     <item row="1" column="1"><widget class="QLineEdit" name="lastNameLineEdit"/></item>
-     <item row="2" column="0"><widget class="QLabel" name="emailLabel"><property name="text"><string>Email</string></property></widget></item>
-     <item row="2" column="1"><widget class="QLineEdit" name="emailLineEdit"/></item>
-     <item row="3" column="0"><widget class="QLabel" name="passwordLabel"><property name="text"><string>Parolă</string></property></widget></item>
-     <item row="3" column="1"><widget class="QLineEdit" name="passwordLineEdit"><property name="echoMode"><enum>QLineEdit::EchoMode::Password</enum></property></widget></item>
-     <item row="4" column="0"><widget class="QLabel" name="confirmPasswordLabel"><property name="text"><string>Confirmă parola</string></property></widget></item>
-     <item row="4" column="1"><widget class="QLineEdit" name="confirmPasswordLineEdit"><property name="echoMode"><enum>QLineEdit::EchoMode::Password</enum></property></widget></item>
-     <item row="5" column="0"><widget class="QLabel" name="roleLabel"><property name="text"><string>Rol</string></property></widget></item>
-     <item row="5" column="1"><widget class="QComboBox" name="roleComboBox"/></item>
-    </layout>
-   </item>
-   <item><widget class="QLabel" name="statusLabel"><property name="text"><string/></property><property name="wordWrap"><bool>true</bool></property></widget></item>
-   <item><spacer name="verticalSpacer"><property name="orientation"><enum>Qt::Orientation::Vertical</enum></property><property name="sizeHint" stdset="0"><size><width>20</width><height>30</height></size></property></spacer></item>
-   <item>
-    <layout class="QHBoxLayout" name="buttonsLayout">
-     <item><widget class="QPushButton" name="registerButton"><property name="text"><string>Creează cont</string></property><property name="default"><bool>true</bool></property></widget></item>
-     <item><widget class="QPushButton" name="backButton"><property name="text"><string>Înapoi</string></property></widget></item>
-    </layout>
-   </item>
+   <property name="leftMargin"><number>28</number></property><property name="topMargin"><number>14</number></property><property name="rightMargin"><number>28</number></property><property name="bottomMargin"><number>14</number></property>
+   <item><layout class="QHBoxLayout" name="authRowLayout">
+    <item><spacer name="leftSpacer"><property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property><property name="sizeHint" stdset="0"><size><width>70</width><height>20</height></size></property></spacer></item>
+    <item><widget class="QFrame" name="authCard">
+     <property name="minimumSize"><size><width>500</width><height>0</height></size></property>
+     <property name="maximumSize"><size><width>600</width><height>680</height></size></property>
+     <layout class="QVBoxLayout" name="cardLayout">
+      <property name="leftMargin"><number>32</number></property><property name="topMargin"><number>14</number></property><property name="rightMargin"><number>32</number></property><property name="bottomMargin"><number>14</number></property><property name="spacing"><number>4</number></property>
+      <item><layout class="QHBoxLayout" name="brandLayout">
+       <item><widget class="QLabel" name="brandMarkLabel"><property name="minimumSize"><size><width>46</width><height>46</height></size></property><property name="maximumSize"><size><width>46</width><height>46</height></size></property><property name="text"><string>E</string></property></widget></item>
+       <item><layout class="QVBoxLayout" name="brandTextLayout"><property name="spacing"><number>0</number></property>
+        <item><widget class="QLabel" name="eyebrowLabel"><property name="text"><string>CONT NOU</string></property></widget></item>
+        <item><widget class="QLabel" name="titleLabel"><property name="text"><string>EduChain</string></property></widget></item>
+       </layout></item>
+       <item><spacer name="brandSpacer"><property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property><property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property></spacer></item>
+      </layout></item>
+      <item><widget class="QLabel" name="subtitleLabel"><property name="text"><string>Creează-ți contul</string></property></widget></item>
+      <item><widget class="QLabel" name="descriptionLabel"><property name="text"><string>Completează datele de mai jos pentru a intra în comunitatea EduChain.</string></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+      <item><widget class="QFrame" name="statusPill"><layout class="QHBoxLayout" name="connectionLayout">
+       <property name="leftMargin"><number>12</number></property><property name="topMargin"><number>5</number></property><property name="rightMargin"><number>8</number></property><property name="bottomMargin"><number>5</number></property>
+       <item><widget class="QLabel" name="connectionDotLabel"><property name="text"><string>●</string></property></widget></item>
+       <item><widget class="QLabel" name="connectionStatusLabel"><property name="text"><string>Neconectat</string></property></widget></item>
+       <item><spacer name="connectionSpacer"><property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property><property name="sizeHint" stdset="0"><size><width>20</width><height>20</height></size></property></spacer></item>
+       <item><widget class="QPushButton" name="retryConnectionButton"><property name="text"><string>Reîncearcă</string></property></widget></item>
+      </layout></widget></item>
+      <item><layout class="QFormLayout" name="formLayout">
+       <property name="fieldGrowthPolicy"><enum>QFormLayout::FieldGrowthPolicy::AllNonFixedFieldsGrow</enum></property><property name="horizontalSpacing"><number>18</number></property><property name="verticalSpacing"><number>5</number></property>
+       <item row="0" column="0"><widget class="QLabel" name="firstNameLabel"><property name="text"><string>Prenume</string></property></widget></item><item row="0" column="1"><widget class="QLineEdit" name="firstNameLineEdit"><property name="placeholderText"><string>Introdu prenumele</string></property><property name="clearButtonEnabled"><bool>true</bool></property></widget></item>
+       <item row="1" column="0"><widget class="QLabel" name="lastNameLabel"><property name="text"><string>Nume</string></property></widget></item><item row="1" column="1"><widget class="QLineEdit" name="lastNameLineEdit"><property name="placeholderText"><string>Introdu numele</string></property><property name="clearButtonEnabled"><bool>true</bool></property></widget></item>
+       <item row="2" column="0"><widget class="QLabel" name="emailLabel"><property name="text"><string>Email</string></property></widget></item><item row="2" column="1"><widget class="QLineEdit" name="emailLineEdit"><property name="placeholderText"><string>exemplu@email.com</string></property><property name="clearButtonEnabled"><bool>true</bool></property></widget></item>
+       <item row="3" column="0"><widget class="QLabel" name="passwordLabel"><property name="text"><string>Parolă</string></property></widget></item><item row="3" column="1"><widget class="QLineEdit" name="passwordLineEdit"><property name="placeholderText"><string>Alege o parolă sigură</string></property><property name="echoMode"><enum>QLineEdit::EchoMode::Password</enum></property></widget></item>
+       <item row="4" column="0"><widget class="QLabel" name="confirmPasswordLabel"><property name="text"><string>Confirmare</string></property></widget></item><item row="4" column="1"><widget class="QLineEdit" name="confirmPasswordLineEdit"><property name="placeholderText"><string>Repetă parola</string></property><property name="echoMode"><enum>QLineEdit::EchoMode::Password</enum></property></widget></item>
+       <item row="5" column="0"><widget class="QLabel" name="roleLabel"><property name="text"><string>Rol</string></property></widget></item><item row="5" column="1"><widget class="QComboBox" name="roleComboBox"/></item>
+      </layout></item>
+      <item><widget class="QLabel" name="statusLabel"><property name="minimumSize"><size><width>0</width><height>16</height></size></property><property name="text"><string/></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+      <item><widget class="QPushButton" name="registerButton"><property name="styleRole" stdset="0"><string>primary</string></property><property name="minimumSize"><size><width>0</width><height>36</height></size></property><property name="text"><string>Creează cont</string></property><property name="default"><bool>true</bool></property></widget></item>
+      <item><widget class="QPushButton" name="backButton"><property name="text"><string>Înapoi la autentificare</string></property></widget></item>
+     </layout>
+    </widget></item>
+    <item><spacer name="rightSpacer"><property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property><property name="sizeHint" stdset="0"><size><width>70</width><height>20</height></size></property></spacer></item>
+   </layout></item>
   </layout>
  </widget>
- <resources/>
- <connections/>
+ <resources/><connections/>
 </ui>
