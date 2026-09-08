@@ -35,6 +35,7 @@ public:
     const std::string& rol() const noexcept;
     const std::string& nume() const noexcept;
     const std::string& prenume() const noexcept;
+    const std::string& ultimaEroareConexiune() const noexcept;
     std::string numeComplet() const;
 
 private:
@@ -46,4 +47,5 @@ private:
     std::string rol_;
     std::string nume_;
     std::string prenume_;
+    std::string ultimaEroareConexiune_;
 };

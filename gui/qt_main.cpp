@@ -11,6 +11,7 @@
 
 #include <charconv>
 #include <cstdint>
+#include <iostream>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -50,6 +51,11 @@ int main(int argc, char* argv[]) {
                               QString::fromUtf8(u8"Host sau port invalid. Portul trebuie să fie între 1 și 65535."));
         return 2;
     }
+
+    std::clog << "[CLIENT] Executable: "
+              << QApplication::applicationFilePath().toStdString() << '\n'
+              << "[CLIENT] Host: " << host << '\n'
+              << "[CLIENT] Port: " << port << '\n';
 
     auto context = std::make_shared<ApplicationContext>(host, port);
     try {

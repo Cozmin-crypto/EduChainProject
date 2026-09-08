@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-constexpr std::uint16_t versiuneProtocolEdu = 2;
+constexpr std::uint16_t versiuneProtocolEdu = 3;
 
 enum class TipCerereEdu : std::uint16_t {
     Ping = 1,

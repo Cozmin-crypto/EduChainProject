@@ -10,6 +10,8 @@
 #include <WS2tcpip.h>
 
 #include <algorithm>
+#include <cstring>
+#include <iostream>
 #include <limits>
 #include <utility>
 #include <cmath>
@@ -266,7 +268,11 @@ void ServerEdu::proceseazaCerere() {
     if (!ruleaza || !socketPrincipal.esteValid()) {
         throw ExceptieEdu("Serverul nu este pornit.");
     }
-    const SOCKET acceptat = accept(socketPrincipal.obtine(), nullptr, nullptr);
+    sockaddr_in adresaClient{};
+    int dimensiuneAdresaClient = sizeof(adresaClient);
+    const SOCKET acceptat = accept(socketPrincipal.obtine(),
+                                   reinterpret_cast<sockaddr*>(&adresaClient),
+                                   &dimensiuneAdresaClient);
     if (acceptat == INVALID_SOCKET) {
         if (!ruleaza) {
             return;
@@ -277,6 +283,14 @@ void ServerEdu::proceseazaCerere() {
         std::lock_guard<std::mutex> blocare(mutexSocketClient);
         socketClientActiv.reseteaza(acceptat);
     }
+
+    char adresaText[INET_ADDRSTRLEN]{};
+    const char* adresaAfisata = InetNtopA(AF_INET, &adresaClient.sin_addr,
+                                         adresaText, sizeof(adresaText));
+    std::clog << "[SERVER] Accepted client from "
+              << (adresaAfisata ? adresaAfisata : "unknown") << ':'
+              << ntohs(adresaClient.sin_port) << '\n'
+              << "[SERVER] Session created\n";
 
     SesiuneClient sesiune;
     try {
@@ -291,13 +305,22 @@ void ServerEdu::proceseazaCerere() {
             }
             const auto cadru = primesteMesaj(client);
             if (!cadru.has_value()) {
+                std::clog << "[SERVER] Disconnect reason: client closed connection\n";
                 break;
+            }
+
+            if (cadru->size() >= sizeof(std::uint16_t)) {
+                std::uint16_t versiuneRetea{};
+                std::memcpy(&versiuneRetea, cadru->data(), sizeof(versiuneRetea));
+                std::clog << "[SERVER] Client protocol version: "
+                          << ntohs(versiuneRetea) << '\n';
             }
 
             CerereEdu cerere;
             try {
                 cerere = ProtocolEdu::decodificaCerere(*cadru);
-            } catch (const ExceptieEdu&) {
+            } catch (const ExceptieEdu& exceptie) {
+                std::clog << "[SERVER] Protocol decode failure: " << exceptie.what() << '\n';
                 const std::uint32_t idInvalid =
                     ProtocolEdu::extrageIdCerere(*cadru).value_or(1);
                 trimiteMesaj(client, ProtocolEdu::codificaRaspuns(
@@ -315,12 +338,14 @@ void ServerEdu::proceseazaCerere() {
             }
         }
     } catch (...) {
+        std::clog << "[SERVER] Disconnect reason: session processing failure\n";
         inchideClientActiv();
         if (!ruleaza) {
             return;
         }
         throw;
     }
+    std::clog << "[SERVER] Disconnect reason: session ended\n";
     inchideClientActiv();
 }
 

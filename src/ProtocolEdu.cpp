@@ -209,8 +209,11 @@ CerereEdu ProtocolEdu::decodificaCerere(const std::string& date) {
     if (pozitie != date.size()) {
         throw ExceptieEdu("Mesajul contine date suplimentare neasteptate.");
     }
-    if (cerere.versiune != versiuneProtocolEdu || cerere.idCerere == 0) {
-        throw ExceptieEdu("Versiunea sau ID-ul cererii este invalid.");
+    if (cerere.versiune != versiuneProtocolEdu) {
+        throw ExceptieEdu("Versiunea protocolului cererii este incompatibila.");
+    }
+    if (cerere.idCerere == 0) {
+        throw ExceptieEdu("ID-ul cererii este invalid.");
     }
     return cerere;
 }
@@ -233,8 +236,10 @@ RaspunsEdu ProtocolEdu::decodificaRaspuns(const std::string& date) {
     raspuns.cod = static_cast<CodRezultatEdu>(citesteU16(date, pozitie));
     raspuns.mesajPublic = citesteText(date, pozitie);
     raspuns.campuri = citesteCampuri(date, pozitie);
-    if (pozitie != date.size() || raspuns.versiune != versiuneProtocolEdu ||
-        raspuns.idCerere == 0) {
+    if (raspuns.versiune != versiuneProtocolEdu) {
+        throw ExceptieEdu("Versiunea protocolului serverului este incompatibila cu acest client.");
+    }
+    if (pozitie != date.size() || raspuns.idCerere == 0) {
         throw ExceptieEdu("Raspunsul protocolului este invalid.");
     }
     return raspuns;

@@ -2,7 +2,9 @@
 
 #include "ClientEdu.h"
 #include "ExceptieEdu.h"
+#include "ProtocolEdu.h"
 
+#include <iostream>
 #include <utility>
 
 ApplicationContext::ApplicationContext(std::string host, std::uint16_t port)
@@ -15,12 +17,24 @@ ApplicationContext::~ApplicationContext() {
 }
 
 void ApplicationContext::conecteaza() {
-    if (!client_->esteConectat()) {
-        client_->pornesteNod();
-    }
-    if (!verificaPing()) {
-        client_->opresteNod();
-        throw ExceptieEdu("Serverul nu a raspuns corect la PING.");
+    try {
+        if (!client_->esteConectat()) {
+            client_->pornesteNod();
+        }
+        std::clog << "[CLIENT] Protocol version: " << versiuneProtocolEdu << '\n'
+                  << "[CLIENT] Handshake: sending PING\n";
+        if (!verificaPing()) {
+            client_->opresteNod();
+            throw ExceptieEdu("Serverul nu a raspuns corect la PING.");
+        }
+        ultimaEroareConexiune_.clear();
+        std::clog << "[CLIENT] Handshake: success\n"
+                  << "[CLIENT] Final connected state: true\n";
+    } catch (const std::exception& exceptie) {
+        ultimaEroareConexiune_ = exceptie.what();
+        std::clog << "[CLIENT] Handshake: failure: " << ultimaEroareConexiune_ << '\n'
+                  << "[CLIENT] Final connected state: false\n";
+        throw;
     }
 }
 
@@ -87,6 +101,7 @@ const std::string& ApplicationContext::email() const noexcept { return email_; }
 const std::string& ApplicationContext::rol() const noexcept { return rol_; }
 const std::string& ApplicationContext::nume() const noexcept { return nume_; }
 const std::string& ApplicationContext::prenume() const noexcept { return prenume_; }
+const std::string& ApplicationContext::ultimaEroareConexiune() const noexcept { return ultimaEroareConexiune_; }
 std::string ApplicationContext::numeComplet() const {
     return prenume_.empty() ? nume_ : (nume_.empty() ? prenume_ : prenume_ + " " + nume_);
 }

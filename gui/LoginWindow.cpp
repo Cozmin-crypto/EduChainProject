@@ -234,7 +234,10 @@ void LoginWindow::actualizeazaStareConexiune() {
     } else {
         ui_->connectionStatusLabel->setText(QString::fromUtf8(u8"Server indisponibil"));
         if (!reconectareInCurs_) {
-            ui_->statusLabel->setText(QString::fromUtf8(u8"Nu există conexiune."));
+            const auto& eroare = context_->ultimaEroareConexiune();
+            ui_->statusLabel->setText(eroare.empty()
+                ? QString::fromUtf8(u8"Nu există conexiune.")
+                : QString::fromUtf8(eroare.c_str()));
         }
     }
 }

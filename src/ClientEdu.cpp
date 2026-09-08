@@ -5,6 +5,7 @@
 #include <WS2tcpip.h>
 
 #include <limits>
+#include <iostream>
 #include <utility>
 
 namespace {
@@ -38,6 +39,8 @@ ClientEdu::~ClientEdu() noexcept {
 }
 
 void ClientEdu::pornesteNod() {
+    std::clog << "[CLIENT] Host: " << adresaIp << '\n'
+              << "[CLIENT] Port: " << port << '\n';
     if (conectat) {
         throw ExceptieEdu("Clientul este deja conectat.");
     }
@@ -56,8 +59,12 @@ void ClientEdu::pornesteNod() {
     }
     if (connect(socketNou.obtine(), reinterpret_cast<const sockaddr*>(&adresaServer),
                 sizeof(adresaServer)) == SOCKET_ERROR) {
-        throw ExceptieEdu(eroareClient("Conectarea la server a esuat"));
+        const int codEroare = WSAGetLastError();
+        std::clog << "[CLIENT] TCP connect: failure (Winsock " << codEroare << ")\n";
+        throw ExceptieEdu("Conectarea la server a esuat (cod Winsock " +
+                          std::to_string(codEroare) + ").");
     }
+    std::clog << "[CLIENT] TCP connect: success\n";
     socketPrincipal = std::move(socketNou);
     conectat = true;
     autentificat = false;
@@ -101,7 +108,13 @@ RaspunsEdu ClientEdu::executaCerere(CerereEdu cerere) {
         }
         ultimulRaspuns = raspuns.mesajPublic;
         return raspuns;
+    } catch (const std::exception& exceptie) {
+        std::clog << "[CLIENT] Connection closed after request failure: "
+                  << exceptie.what() << '\n';
+        opresteNod();
+        throw;
     } catch (...) {
+        std::clog << "[CLIENT] Connection closed after unknown request failure\n";
         opresteNod();
         throw;
     }
@@ -131,8 +144,11 @@ RaspunsEdu ClientEdu::autentifica(const std::string& email,
     if (raspuns.cod == CodRezultatEdu::Succes) {
         const auto rol = ProtocolEdu::cautaCamp(raspuns.campuri, CampEdu::Rol);
         const auto id = ProtocolEdu::cautaCamp(raspuns.campuri, CampEdu::UtilizatorId);
-        if (!rol || !id) {
-            throw ExceptieEdu("Raspunsul autentificarii este incomplet.");
+        const auto nume = ProtocolEdu::cautaCamp(raspuns.campuri, CampEdu::Nume);
+        const auto prenume = ProtocolEdu::cautaCamp(raspuns.campuri, CampEdu::Prenume);
+        if (!rol || rol->empty() || !id || !nume || nume->empty() ||
+            !prenume || prenume->empty()) {
+            throw ExceptieEdu("Raspunsul autentificarii este incomplet sau serverul foloseste o versiune incompatibila.");
         }
         convertesteId(*id, "Id-ul utilizatorului autentificat");
         autentificat = true;

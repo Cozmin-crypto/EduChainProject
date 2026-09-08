@@ -15,8 +15,28 @@
 #include <thread>
 
 namespace {
+static_assert(static_cast<std::uint16_t>(CampEdu::Email) == 1);
+static_assert(static_cast<std::uint16_t>(CampEdu::Nume) == 4);
+static_assert(static_cast<std::uint16_t>(CampEdu::UtilizatorId) == 7);
+static_assert(static_cast<std::uint16_t>(CampEdu::Rol) == 8);
+static_assert(static_cast<std::uint16_t>(CampEdu::Prenume) == 42);
+
 void verifica(bool conditie, const char* mesaj) {
     if (!conditie) throw std::runtime_error(mesaj);
+}
+
+void verificaRaspunsAutentificare(const RaspunsEdu& raspuns,
+                                  const std::string& rolAsteptat,
+                                  const std::string& numeAsteptat,
+                                  const std::string& prenumeAsteptat) {
+    const auto id = ProtocolEdu::cautaCamp(raspuns.campuri, CampEdu::UtilizatorId);
+    const auto rol = ProtocolEdu::cautaCamp(raspuns.campuri, CampEdu::Rol);
+    const auto nume = ProtocolEdu::cautaCamp(raspuns.campuri, CampEdu::Nume);
+    const auto prenume = ProtocolEdu::cautaCamp(raspuns.campuri, CampEdu::Prenume);
+    verifica(raspuns.cod == CodRezultatEdu::Succes && id && !id->empty() &&
+                 rol && *rol == rolAsteptat && nume && *nume == numeAsteptat &&
+                 prenume && *prenume == prenumeAsteptat,
+             "raspunsul autentificarii nu contine toate campurile obligatorii");
 }
 
 template <typename Operatie>
@@ -25,7 +45,7 @@ void conexiune(ServerEdu& server, Operatie operatie) {
     std::thread fir([&] { try { server.proceseazaCerere(); }
                          catch (...) { eroareServer = std::current_exception(); } });
     try {
-        ClientEdu client(server.obtinePort());
+        ClientEdu client(server.obtinePort(), "127.0.0.1");
         client.pornesteNod();
         operatie(client);
         if (client.esteConectat()) client.deconecteaza();
@@ -67,6 +87,7 @@ int main() {
         db.executaInterogare("PRAGMA ignore_check_constraints = OFF;");
 
         int contNou{};
+        int contProfesor{};
         {
             ServerEdu server(autentificare, cursuri, 0);
             server.pornesteNod();
@@ -75,6 +96,10 @@ int main() {
                     "Popescu", "Ana", "ana.secure@example.ro",
                     "parola-sigura", "student");
                 verifica(contNou > 0, "inregistrarea contului hash-uit a esuat");
+                contProfesor = client.inregistreaza(
+                    "Ionescu", "Mihai", "mihai.profesor@example.ro",
+                    "parola-profesor", "profesor");
+                verifica(contProfesor > 0, "inregistrarea profesorului a esuat");
             });
 
             const auto nou = utilizatori.cautaDupaId(contNou);
@@ -85,6 +110,7 @@ int main() {
             conexiune(server, [&](ClientEdu& client) {
                 const auto login = client.autentifica(
                     "ana.secure@example.ro", "parola-sigura");
+                verificaRaspunsAutentificare(login, "student", "Popescu", "Ana");
                 verifica(login.cod == CodRezultatEdu::Succes &&
                              client.obtineRolAutentificat() == "student",
                          "login-ul cu hash valid a esuat");
@@ -128,6 +154,27 @@ int main() {
                          "inregistrarea rolului administrator este acceptata");
             });
             server.opresteNod();
+        }
+
+        {
+            ServerEdu serverRepornit(autentificare, cursuri, 0);
+            serverRepornit.pornesteNod();
+            conexiune(serverRepornit, [&](ClientEdu& client) {
+                const auto loginStudent = client.autentifica(
+                    "ana.secure@example.ro", "parola-sigura");
+                verificaRaspunsAutentificare(
+                    loginStudent, "student", "Popescu", "Ana");
+            });
+            conexiune(serverRepornit, [&](ClientEdu& client) {
+                const auto loginProfesor = client.autentifica(
+                    "mihai.profesor@example.ro", "parola-profesor");
+                verificaRaspunsAutentificare(
+                    loginProfesor, "profesor", "Ionescu", "Mihai");
+                verifica(client.esteAutentificat() &&
+                             client.obtineRolAutentificat() == "profesor",
+                         "ClientEdu nu a acceptat autentificarea profesorului");
+            });
+            serverRepornit.opresteNod();
         }
 
         db.inchideConexiune();

@@ -188,6 +188,9 @@ RezultatAutentificare AutentificareService::autentifica(
         return {false, StareAutentificare::RolNesuportat, std::nullopt,
                 email, std::nullopt, "Acces refuzat: rol nesuportat."};
     }
+    if (utilizator->nume.empty() || utilizator->prenume.empty()) {
+        throw ExceptieEdu("Contul nu contine un nume si un prenume valide.");
+    }
     return {true, StareAutentificare::Succes, utilizator->id,
             utilizator->email, utilizator->rol, "Autentificare reusita.",
             utilizator->nume, utilizator->prenume};
