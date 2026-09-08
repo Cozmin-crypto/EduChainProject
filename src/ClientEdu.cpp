@@ -390,6 +390,40 @@ void ClientEdu::salveazaRaspuns(int incercareId,int intrebareId,const std::strin
 
 IncercarePublicEdu ClientEdu::finalizeazaIncercare(int incercareId){CerereEdu c;c.tip=TipCerereEdu::FinalizeazaIncercare;c.campuri={{static_cast<std::uint16_t>(CampEdu::IncercareId),std::to_string(incercareId)}};const auto r=executaCerere(std::move(c));verificaSucces(r);if(r.campuri.size()!=1||r.campuri[0].id!=static_cast<std::uint16_t>(CampEdu::Incercare))throw ExceptieEdu("Rezultatul finalizarii este invalid.");return ProtocolEdu::decodificaIncercare(r.campuri[0].valoare);}
 
+namespace {
+std::vector<RezultatEvaluarePublicEdu> decodificaListaRezultate(
+    const RaspunsEdu& raspuns) {
+    std::vector<RezultatEvaluarePublicEdu> rezultate;
+    rezultate.reserve(raspuns.campuri.size());
+    for (const auto& camp : raspuns.campuri) {
+        if (camp.id != static_cast<std::uint16_t>(CampEdu::RezultatEvaluare)) {
+            throw ExceptieEdu("Raspunsul listei de rezultate este invalid.");
+        }
+        rezultate.push_back(ProtocolEdu::decodificaRezultatEvaluare(camp.valoare));
+    }
+    return rezultate;
+}
+}
+
+std::vector<RezultatEvaluarePublicEdu> ClientEdu::listeazaRezultateleMele() {
+    CerereEdu cerere;
+    cerere.tip = TipCerereEdu::ListeazaRezultateleMele;
+    const auto raspuns = executaCerere(std::move(cerere));
+    verificaSucces(raspuns);
+    return decodificaListaRezultate(raspuns);
+}
+
+std::vector<RezultatEvaluarePublicEdu> ClientEdu::listeazaRezultateleEvaluarii(
+    int evaluareId) {
+    CerereEdu cerere;
+    cerere.tip = TipCerereEdu::ListeazaRezultateleEvaluarii;
+    cerere.campuri = {{static_cast<std::uint16_t>(CampEdu::EvaluareId),
+                       std::to_string(evaluareId)}};
+    const auto raspuns = executaCerere(std::move(cerere));
+    verificaSucces(raspuns);
+    return decodificaListaRezultate(raspuns);
+}
+
 namespace {void executaInscriere(ClientEdu& client,TipCerereEdu tip,int student,int curs){CerereEdu c;c.tip=tip;c.campuri={{static_cast<std::uint16_t>(CampEdu::CursId),std::to_string(curs)}};if(student>0)c.campuri.push_back({static_cast<std::uint16_t>(CampEdu::StudentId),std::to_string(student)});const auto r=client.executaCerere(std::move(c));if(r.cod!=CodRezultatEdu::Succes)throw ExceptieEdu(r.mesajPublic);}}
 void ClientEdu::inscrieLaCurs(int c){executaInscriere(*this,TipCerereEdu::InscrieStudentLaCurs,0,c);}void ClientEdu::retrageDeLaCurs(int c){executaInscriere(*this,TipCerereEdu::RetrageStudentDeLaCurs,0,c);}void ClientEdu::inscrieStudentLaCurs(int s,int c){executaInscriere(*this,TipCerereEdu::InscrieStudentLaCurs,s,c);}void ClientEdu::retrageStudentDeLaCurs(int s,int c){executaInscriere(*this,TipCerereEdu::RetrageStudentDeLaCurs,s,c);}
 std::vector<CursPublicEdu> ClientEdu::listeazaCursuriInscrise(){CerereEdu c;c.tip=TipCerereEdu::ListeazaCursuriInscrise;const auto r=executaCerere(std::move(c));verificaSucces(r);std::vector<CursPublicEdu> v;for(const auto&x:r.campuri){if(x.id!=static_cast<std::uint16_t>(CampEdu::Curs))throw ExceptieEdu("Raspuns invalid.");v.push_back(ProtocolEdu::decodificaCurs(x.valoare));}return v;}

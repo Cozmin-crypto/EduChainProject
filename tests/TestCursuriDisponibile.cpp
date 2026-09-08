@@ -39,14 +39,6 @@ void adaugaProfesor(ConectorBazaDate& db, int id) {
     db.executaInterogareParametrizata(
         "INSERT INTO profesori(utilizator_id) VALUES (?);", {std::to_string(id)});
 }
-void adaugaAdministrator(ConectorBazaDate& db, int id) {
-    db.executaInterogareParametrizata(
-        "INSERT INTO personal(utilizator_id,departament,data_angajarii) VALUES (?,?,?);",
-        {std::to_string(id), "Administratie", "2026-07-20"});
-    db.executaInterogareParametrizata(
-        "INSERT INTO administratori(utilizator_id,nivel_acces) VALUES (?,?);",
-        {std::to_string(id), "10"});
-}
 template<class Operatie>
 void conexiune(ServerEdu& server, Operatie operatie) {
     std::exception_ptr eroareServer;
@@ -85,14 +77,21 @@ int main() {
         EvaluareService evaluari(evaluariRepo, cursuriRepo, utilizatori, inscrieri);
         AutentificareService autentificare(utilizatori);
 
-        const int profesor = utilizatori.adaugaUtilizator("prof@x.ro", "p", "profesor");
-        const int student1 = utilizatori.adaugaUtilizator("s1@x.ro", "s", "student");
-        const int student2 = utilizatori.adaugaUtilizator("s2@x.ro", "s", "student");
-        const int admin = utilizatori.adaugaUtilizator("a@x.ro", "a", "administrator");
+        const int profesor = utilizatori.adaugaUtilizator(
+            "prof@x.ro", "p", "profesor", "Ionescu", "Mihai");
+        const int student1 = utilizatori.adaugaUtilizator(
+            "s1@x.ro", "s", "student", "Popescu", "Ion");
+        const int student2 = utilizatori.adaugaUtilizator(
+            "s2@x.ro", "s", "student", "Georgescu", "Ana");
         adaugaProfesor(db, profesor); adaugaStudent(db, student1);
-        adaugaStudent(db, student2); adaugaAdministrator(db, admin);
+        adaugaStudent(db, student2);
         const int curs1 = cursuri.creeazaCurs({profesor, profesor, "Curs 1", std::nullopt});
         const int curs2 = cursuri.creeazaCurs({profesor, profesor, "Curs 2", curs1});
+        const int evaluare = evaluari.creeazaEvaluare(
+            {profesor, curs1, "Evaluare disponibila", "chestionar", 10, true, 0,
+             std::nullopt});
+        evaluari.adaugaIntrebare(
+            {profesor, evaluare, "Intrebare", "raspuns", 1.0, 0});
 
         ServerEdu server(autentificare, cursuri, lectii, evaluari, inscrieri, 0);
         server.pornesteNod();
@@ -114,6 +113,12 @@ int main() {
                      "cursul inscris a ramas disponibil");
             verifica(client.listeazaCursuriInscrise().size() == 1,
                      "inscrierea nu a actualizat lista veche");
+            const auto rezultate = client.listeazaRezultateleMele();
+            verifica(rezultate.size() == 1 &&
+                         rezultate.front().evaluareId == evaluare &&
+                         !rezultate.front().sustinuta &&
+                         rezultate.front().punctajMaxim == 1.0,
+                     "evaluarea nesustinuta nu apare corect in rezultatele studentului");
             verifica(esueaza([&] { client.inscrieLaCurs(curs1); }),
                      "inscrierea duplicata nu a fost respinsa");
             verifica(client.trimiteCerere("PING") == "PONG",
@@ -131,12 +136,14 @@ int main() {
             client.autentifica("prof@x.ro", "p");
             verifica(esueaza([&] { client.listeazaCursuriDisponibile(); }),
                      "profesorul a primit cursuri disponibile");
+            const auto rezultate = client.listeazaRezultateleEvaluarii(evaluare);
+            verifica(rezultate.size() == 1 &&
+                         rezultate.front().studentId == student1 &&
+                         rezultate.front().numeStudent == "Popescu" &&
+                         rezultate.front().prenumeStudent == "Ion" &&
+                         !rezultate.front().sustinuta,
+                     "profesorul nu vede statusul studentului inscris");
             verifica(client.trimiteCerere("PING") == "PONG", "conexiune profesor inchisa");
-        });
-        conexiune(server, [&](ClientEdu& client) {
-            client.autentifica("a@x.ro", "a");
-            verifica(esueaza([&] { client.listeazaCursuriDisponibile(); }),
-                     "administratorul a primit cursuri disponibile");
         });
         server.opresteNod();
         db.inchideConexiune();

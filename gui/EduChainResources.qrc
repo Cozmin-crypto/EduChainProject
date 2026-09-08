@@ -1,0 +1,6 @@
+<RCC>
+ <qresource prefix="/">
+  <file>styles/EduChainStyle.qss</file>
+  <file>styles/chevron-down.svg</file>
+ </qresource>
+</RCC>

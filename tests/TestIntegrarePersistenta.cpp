@@ -103,7 +103,7 @@ int main() {
                      profesorId,
                      "Lectie demonstrativa",
                      "video",
-                     "lectie.mp4",
+                     "https://video.educhain.test/lectie.mp4",
                      4096,
                      std::nullopt,
                      180,
@@ -144,6 +144,42 @@ int main() {
         const auto raspunsuri = evaluari.listeazaRaspunsuri(incercareId);
         verifica(raspunsuri.size() == 1 && raspunsuri.front().raspuns == raspuns,
                  "raspunsul salvat nu a fost citit corect");
+
+        // Simuleaza schema baseline, apoi verifica migrarea automata si pastrarea datelor.
+        conector.executaInterogare("PRAGMA foreign_keys = OFF;");
+        conector.executaInterogare(
+            "BEGIN IMMEDIATE;"
+            "ALTER TABLE raspunsuri_chestionar RENAME TO raspunsuri_test_nou;"
+            "ALTER TABLE intrebari_chestionar RENAME TO intrebari_test_noi;"
+            "CREATE TABLE intrebari_chestionar ("
+            "id INTEGER PRIMARY KEY, chestionar_id INTEGER NOT NULL, "
+            "enunt TEXT NOT NULL, raspuns_corect TEXT NOT NULL "
+            "CHECK (length(trim(raspuns_corect)) > 0), "
+            "punctaj_maxim REAL NOT NULL CHECK (punctaj_maxim >= 0.0), "
+            "ordine INTEGER NOT NULL CHECK (ordine >= 0), "
+            "FOREIGN KEY (chestionar_id) REFERENCES chestionare(evaluare_id) ON DELETE CASCADE, "
+            "UNIQUE (chestionar_id, ordine));"
+            "INSERT INTO intrebari_chestionar SELECT * FROM intrebari_test_noi;"
+            "CREATE TABLE raspunsuri_chestionar ("
+            "incercare_id INTEGER NOT NULL, intrebare_id INTEGER NOT NULL, "
+            "raspuns TEXT NOT NULL, punctaj_obtinut REAL NOT NULL DEFAULT 0.0 "
+            "CHECK (punctaj_obtinut >= 0.0), PRIMARY KEY (incercare_id, intrebare_id), "
+            "FOREIGN KEY (incercare_id) REFERENCES incercari_evaluare(id) ON DELETE CASCADE, "
+            "FOREIGN KEY (intrebare_id) REFERENCES intrebari_chestionar(id) ON DELETE CASCADE);"
+            "INSERT INTO raspunsuri_chestionar SELECT * FROM raspunsuri_test_nou;"
+            "DROP TABLE raspunsuri_test_nou; DROP TABLE intrebari_test_noi; COMMIT;");
+        conector.executaInterogare("PRAGMA foreign_keys = ON;");
+        conector.inchideConexiune();
+        conector.deschideConexiune(caleBazaDate.string());
+        bool relatieGeneralizata = false;
+        for (const auto& cheie :
+             conector.executaSelect("PRAGMA foreign_key_list(intrebari_chestionar);")) {
+            if (cheie.size() > 2 && cheie[2] == "evaluari") relatieGeneralizata = true;
+        }
+        verifica(relatieGeneralizata &&
+                     evaluari.listeazaIntrebari(chestionarId).size() == 1 &&
+                     evaluari.listeazaRaspunsuri(incercareId).size() == 1,
+                 "migrarea automata nu a pastrat intrebarile si raspunsurile");
 
         verifica(cursuri.listeazaDupaProfesor(profesorId).size() == 1,
                  "listarea cursurilor profesorului este incorecta");

@@ -17,7 +17,7 @@ CursInregistrare CursService::obtineCursExistent(int cursId) {
     }
     return *curs;
 }
-std::vector<CursInregistrare> CursService::listeazaCursuri(int actorId){const auto actor=reguli.obtineActor(actorId);if(actor.rol=="student"){if(!inscrieri)throw ExceptieEdu("Serviciul de inscrieri nu este disponibil.");return inscrieri->listeazaCursuriInscrise(actorId);}if(actor.rol=="profesor")return cursuri.listeazaDupaProfesor(actorId);if(actor.rol=="administrator")return cursuri.listeazaCursuri();throw ExceptieEdu("Rolul utilizatorului nu permite listarea cursurilor.");}
+std::vector<CursInregistrare> CursService::listeazaCursuri(int actorId){const auto actor=reguli.obtineActor(actorId);if(actor.rol=="student"){if(!inscrieri)throw ExceptieEdu("Serviciul de inscrieri nu este disponibil.");return inscrieri->listeazaCursuriInscrise(actorId);}if(actor.rol=="profesor")return cursuri.listeazaDupaProfesor(actorId);throw ExceptieEdu("Rolul utilizatorului nu permite listarea cursurilor.");}
 
 std::vector<CursInregistrare> CursService::listeazaCursuri() {
     return cursuri.listeazaCursuri();
@@ -26,7 +26,7 @@ std::vector<CursInregistrare> CursService::listeazaCursuri() {
 std::optional<CursInregistrare> CursService::obtineCurs(int cursId) {
     return cursuri.cautaDupaId(cursId);
 }
-std::optional<CursInregistrare> CursService::obtineCurs(int actorId,int cursId){const auto c=cursuri.cautaDupaId(cursId);if(c){const auto actor=reguli.obtineActor(actorId);if(actor.rol=="student"){if(!inscrieri)throw ExceptieEdu("Serviciul de inscrieri nu este disponibil.");inscrieri->verificaAccesStudentLaCurs(actorId,cursId);}else{reguli.verificaAdministratorSauProprietar(actorId,*c);}}return c;}
+std::optional<CursInregistrare> CursService::obtineCurs(int actorId,int cursId){const auto c=cursuri.cautaDupaId(cursId);if(c){const auto actor=reguli.obtineActor(actorId);if(actor.rol=="student"){if(!inscrieri)throw ExceptieEdu("Serviciul de inscrieri nu este disponibil.");inscrieri->verificaAccesStudentLaCurs(actorId,cursId);}else{reguli.verificaProfesorProprietar(actorId,*c);}}return c;}
 
 int CursService::creeazaCurs(const CerereCreareCurs& cerere) {
     const auto actor = reguli.obtineActor(cerere.actorId);
@@ -34,17 +34,14 @@ int CursService::creeazaCurs(const CerereCreareCurs& cerere) {
     if (!proprietar.has_value() || proprietar->rol != "profesor") {
         throw ExceptieEdu("Proprietarul cursului trebuie sa fie un profesor valid.");
     }
-    if (actor.rol == "student") {
-        throw ExceptieEdu("Studentul nu poate crea cursuri.");
+    if (actor.rol != "profesor") {
+        throw ExceptieEdu("Doar profesorii pot crea cursuri.");
     }
-    if (actor.rol == "profesor" && actor.id != cerere.proprietarId) {
+    if (actor.id != cerere.proprietarId) {
         throw ExceptieEdu("Profesorul poate crea doar cursuri proprii.");
     }
-    if (actor.rol != "profesor" && actor.rol != "administrator") {
-        throw ExceptieEdu("Rolul utilizatorului nu permite crearea cursurilor.");
-    }
     if (cerere.parinteId.has_value()) {
-        reguli.verificaAdministratorSauProprietar(
+        reguli.verificaProfesorProprietar(
             cerere.actorId, obtineCursExistent(*cerere.parinteId));
     }
     return cursuri.adaugaCurs(cerere.nume, cerere.parinteId, cerere.proprietarId);
@@ -52,9 +49,9 @@ int CursService::creeazaCurs(const CerereCreareCurs& cerere) {
 
 bool CursService::actualizeazaCurs(const CerereActualizareCurs& cerere) {
     const auto curs = obtineCursExistent(cerere.cursId);
-    reguli.verificaAdministratorSauProprietar(cerere.actorId, curs);
+    reguli.verificaProfesorProprietar(cerere.actorId, curs);
     if (cerere.parinteId.has_value()) {
-        reguli.verificaAdministratorSauProprietar(
+        reguli.verificaProfesorProprietar(
             cerere.actorId, obtineCursExistent(*cerere.parinteId));
     }
     return cursuri.actualizeazaCurs(
@@ -63,6 +60,6 @@ bool CursService::actualizeazaCurs(const CerereActualizareCurs& cerere) {
 
 bool CursService::stergeCurs(int actorId, int cursId) {
     const auto curs = obtineCursExistent(cursId);
-    reguli.verificaAdministratorSauProprietar(actorId, curs);
+    reguli.verificaProfesorProprietar(actorId, curs);
     return cursuri.stergeCurs(cursId);
 }

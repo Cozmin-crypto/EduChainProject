@@ -45,15 +45,6 @@ void adaugaStudent(ConectorBazaDate& conector, int id) {
         "INSERT INTO studenti (utilizator_id) VALUES (?);", {std::to_string(id)});
 }
 
-void adaugaAdministrator(ConectorBazaDate& conector, int id) {
-    conector.executaInterogareParametrizata(
-        "INSERT INTO personal (utilizator_id, departament, data_angajarii) "
-        "VALUES (?, ?, ?);", {std::to_string(id), "Administratie", "2026-07-19"});
-    conector.executaInterogareParametrizata(
-        "INSERT INTO administratori (utilizator_id, nivel_acces) VALUES (?, ?);",
-        {std::to_string(id), "10"});
-}
-
 template <typename Operatie>
 void ruleazaConexiune(ServerEdu& server, Operatie operatie) {
     std::exception_ptr eroareServer;
@@ -110,12 +101,9 @@ int main() {
             "profesor2.retea@example.ro", "parola-2", "profesor");
         const int student = utilizatori.adaugaUtilizator(
             "student.retea@example.ro", "parola-student", "student");
-        const int administrator = utilizatori.adaugaUtilizator(
-            "admin.retea@example.ro", "parola-admin", "administrator");
         adaugaProfesor(conector, profesor1);
         adaugaProfesor(conector, profesor2);
         adaugaStudent(conector, student);
-        adaugaAdministrator(conector, administrator);
 
         const int cursProfesor1 = cursuri.creeazaCurs(
             {profesor1, profesor1, "Curs initial profesor 1", std::nullopt});
@@ -252,22 +240,6 @@ int main() {
                          "login-ul celui de-al doilea profesor a esuat");
                 verifica(!client.listeazaCursuri().empty(),
                          "profesorul nu poate lista cursurile");
-            });
-
-            ruleazaConexiune(server, [&](ClientEdu& client) {
-                verifica(client.autentifica(
-                             "admin.retea@example.ro", "parola-admin").cod ==
-                             CodRezultatEdu::Succes,
-                         "login-ul administratorului a esuat");
-                const int cursAdmin = client.creeazaCurs(
-                    "Curs creat de administrator", std::nullopt, profesor2);
-                verifica(client.obtineCurs(cursAdmin)->proprietarId == profesor2 &&
-                             client.obtineCurs(cursAdmin)->proprietarId != administrator,
-                         "administratorul a devenit proprietar");
-                client.actualizeazaCurs(cursProfesor1, "Modificat de administrator");
-                client.stergeCurs(cursAdmin);
-                verifica(!client.obtineCurs(cursAdmin).has_value(),
-                         "administratorul nu a sters cursul");
             });
 
             server.opresteNod();

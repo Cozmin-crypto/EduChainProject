@@ -11,7 +11,7 @@ public:
     explicit ReguliAccesService(UtilizatorRepository& utilizatori);
 
     UtilizatorInregistrare obtineActor(int actorId);
-    void verificaAdministratorSauProprietar(int actorId,
-                                            const CursInregistrare& curs);
+    void verificaProfesorProprietar(int actorId,
+                                    const CursInregistrare& curs);
     void verificaStudent(int actorId);
 };

@@ -17,6 +17,11 @@ public:
 
 private slots:
     void incarcaCursurileAcasa();
+    void incarcaCursurileMele();
+    void afiseazaDetaliiCursSelectat();
+    void deschideStudentiiCursului();
+    void deschideLectiileCursului();
+    void deschideEvaluarileCursului();
     void creeazaCurs();
     void incarcaCursurilePentruStudenti();
     void incarcaStudentiiCursului();
@@ -32,6 +37,9 @@ private slots:
     void actualizeazaCampurileTipuluiEvaluarii();
     void creeazaEvaluare();
     void adaugaIntrebare();
+    void incarcaCursurilePentruRezultate();
+    void incarcaEvaluarilePentruRezultate();
+    void incarcaRezultateleEvaluarii();
 
 private:
     std::unique_ptr<Ui::ProfessorDashboard> ui_;
@@ -41,6 +49,9 @@ private:
     void actualizeazaStareConexiune();
     void actualizeazaControaleleAdministrarii(bool cerereInCurs = false);
     void incarcaCursurileAcasaCuSelectie(int cursPreferat);
+    void incarcaCursurileMeleCuSelectie(int cursPreferat);
+    int cursSelectatPentruManagement() const;
+    void selecteazaCursInCombo(class QComboBox* combo, int cursId);
     void incarcaStudentiiCursuluiCuSelectie(int studentPreferat);
     void actualizeazaControalele(bool cerereInCurs = false);
     void golesteDetaliileLectiei();

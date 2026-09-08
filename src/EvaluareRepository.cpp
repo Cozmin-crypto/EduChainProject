@@ -179,6 +179,32 @@ RaspunsChestionarInregistrare transformaRaspuns(const std::vector<std::string>& 
             convertesteReal(rand[3], "Punctajul obtinut")};
 }
 
+RezultatEvaluareInregistrare transformaRezultat(const std::vector<std::string>& rand) {
+    if (rand.size() != 13) {
+        throw ExceptieEdu("Randul rezultatului nu contine numarul asteptat de coloane.");
+    }
+    RezultatEvaluareInregistrare rezultat;
+    rezultat.evaluareId = convertesteId(rand[0], "Id-ul evaluarii");
+    rezultat.cursId = convertesteId(rand[1], "Id-ul cursului");
+    rezultat.numeCurs = rand[2];
+    rezultat.numeEvaluare = rand[3];
+    rezultat.tipEvaluare = rand[4];
+    rezultat.studentId = convertesteId(rand[5], "Id-ul studentului");
+    rezultat.numeStudent = rand[6];
+    rezultat.prenumeStudent = rand[7];
+    rezultat.punctajMaxim = convertesteReal(rand[8], "Punctajul maxim");
+    if (!rand[9].empty()) {
+        rezultat.incercareId = convertesteId(rand[9], "Id-ul incercarii");
+        rezultat.scorBrut = convertesteReal(rand[10], "Scorul brut");
+        rezultat.notaFinala = convertesteReal(rand[11], "Nota finala");
+        if (rand[12].empty()) {
+            throw ExceptieEdu("Rezultatul finalizat nu contine data finalizarii.");
+        }
+        rezultat.finalizataLa = rand[12];
+    }
+    return rezultat;
+}
+
 template <typename T, typename Transformare>
 std::vector<T> transformaToate(const std::vector<std::vector<std::string>>& rezultate,
                                Transformare transforma) {
@@ -258,12 +284,12 @@ void EvaluareRepository::valideazaStudentExistent(int studentId) {
     }
 }
 
-void EvaluareRepository::valideazaChestionarExistent(int chestionarId) {
-    valideazaId(chestionarId, "Id-ul chestionarului");
+void EvaluareRepository::valideazaEvaluareExistenta(int evaluareId) {
+    valideazaId(evaluareId, "Id-ul evaluarii");
     if (conector.executaSelectParametrizat(
-            "SELECT evaluare_id FROM chestionare WHERE evaluare_id = ?;",
-            {std::to_string(chestionarId)}).empty()) {
-        throw ExceptieEdu("Chestionarul specificat nu exista.");
+            "SELECT id FROM evaluari WHERE id = ?;",
+            {std::to_string(evaluareId)}).empty()) {
+        throw ExceptieEdu("Evaluarea specificata nu exista.");
     }
 }
 
@@ -373,7 +399,7 @@ int EvaluareRepository::adaugaIntrebare(int chestionarId,
                                         const std::string& raspunsCorect,
                                         double punctajMaxim,
                                         long long ordine) {
-    valideazaChestionarExistent(chestionarId);
+    valideazaEvaluareExistenta(chestionarId);
     if (enunt.empty() || raspunsCorect.find_first_not_of(" \t\r\n") == std::string::npos) {
         throw ExceptieEdu("Enuntul si raspunsul corect nu pot fi goale.");
     }
@@ -448,7 +474,7 @@ bool EvaluareRepository::stergeIntrebare(int intrebareId) {
 
 std::vector<IntrebareChestionarInregistrare> EvaluareRepository::listeazaIntrebari(
     int chestionarId) {
-    valideazaChestionarExistent(chestionarId);
+    valideazaEvaluareExistenta(chestionarId);
     return transformaToate<IntrebareChestionarInregistrare>(
         conector.executaSelectParametrizat(
             "SELECT id, chestionar_id, enunt, raspuns_corect, punctaj_maxim, ordine "
@@ -473,10 +499,25 @@ int EvaluareRepository::adaugaIncercare(int evaluareId, int studentId) {
         throw ExceptieEdu("Evaluarea specificata nu exista.");
     }
     valideazaStudentExistent(studentId);
-    conector.executaInterogareParametrizata(
-        "INSERT INTO incercari_evaluare (evaluare_id, student_id) VALUES (?, ?);",
-        {std::to_string(evaluareId), std::to_string(studentId)});
-    return citesteUltimulId(conector, "Id-ul incercarii");
+    incepeTranzactie(conector);
+    try {
+        const auto existenta = conector.executaSelectParametrizat(
+            "SELECT id FROM incercari_evaluare WHERE evaluare_id = ? AND student_id = ? "
+            "LIMIT 1;",
+            {std::to_string(evaluareId), std::to_string(studentId)});
+        if (!existenta.empty()) {
+            throw ExceptieEdu("EVALUARE_DEJA_SUSTINUTA");
+        }
+        conector.executaInterogareParametrizata(
+            "INSERT INTO incercari_evaluare (evaluare_id, student_id) VALUES (?, ?);",
+            {std::to_string(evaluareId), std::to_string(studentId)});
+        const int id = citesteUltimulId(conector, "Id-ul incercarii");
+        confirmaTranzactie(conector);
+        return id;
+    } catch (...) {
+        anuleazaTranzactie(conector);
+        throw;
+    }
 }
 
 bool EvaluareRepository::finalizeazaIncercare(int incercareId,
@@ -505,6 +546,20 @@ std::optional<IncercareEvaluareInregistrare> EvaluareRepository::cautaIncercareD
     return transformaIncercare(rezultate.front());
 }
 
+std::optional<IncercareEvaluareInregistrare>
+EvaluareRepository::cautaIncercareDupaEvaluareStudent(int evaluareId, int studentId) {
+    valideazaId(evaluareId, "Id-ul evaluarii");
+    valideazaId(studentId, "Id-ul studentului");
+    const auto rezultate = conector.executaSelectParametrizat(
+        std::string(selectIncercari) +
+            "WHERE evaluare_id = ? AND student_id = ? ORDER BY id DESC LIMIT 1;",
+        {std::to_string(evaluareId), std::to_string(studentId)});
+    if (rezultate.empty()) {
+        return std::nullopt;
+    }
+    return transformaIncercare(rezultate.front());
+}
+
 std::vector<IncercareEvaluareInregistrare> EvaluareRepository::listeazaIncercari(
     int evaluareId) {
     valideazaId(evaluareId, "Id-ul evaluarii");
@@ -516,6 +571,50 @@ std::vector<IncercareEvaluareInregistrare> EvaluareRepository::listeazaIncercari
             std::string(selectIncercari) + "WHERE evaluare_id = ? ORDER BY id;",
             {std::to_string(evaluareId)}),
         transformaIncercare);
+}
+
+std::vector<RezultatEvaluareInregistrare> EvaluareRepository::listeazaRezultateStudent(
+    int studentId) {
+    valideazaStudentExistent(studentId);
+    const std::string selectRezultate =
+        "SELECT e.id, c.id, c.nume, e.nume, e.tip, u.id, u.nume, u.prenume, "
+        "COALESCE((SELECT SUM(q.punctaj_maxim) FROM intrebari_chestionar q "
+        "WHERE q.chestionar_id = e.id), 0), "
+        "i.id, i.scor_brut, i.nota_finala, i.finalizata_la "
+        "FROM inscrieri_curs ic "
+        "JOIN cursuri c ON c.id = ic.curs_id "
+        "JOIN evaluari e ON e.curs_id = c.id "
+        "JOIN utilizatori u ON u.id = ic.student_id "
+        "LEFT JOIN incercari_evaluare i ON i.id = ("
+        "SELECT MAX(i2.id) FROM incercari_evaluare i2 "
+        "WHERE i2.evaluare_id = e.id AND i2.student_id = ic.student_id "
+        "AND i2.finalizata_la IS NOT NULL) "
+        "WHERE ic.student_id = ? ORDER BY c.nume, e.nume, e.id;";
+    return transformaToate<RezultatEvaluareInregistrare>(
+        conector.executaSelectParametrizat(selectRezultate, {std::to_string(studentId)}),
+        transformaRezultat);
+}
+
+std::vector<RezultatEvaluareInregistrare> EvaluareRepository::listeazaRezultateEvaluare(
+    int evaluareId) {
+    valideazaEvaluareExistenta(evaluareId);
+    const std::string selectRezultate =
+        "SELECT e.id, c.id, c.nume, e.nume, e.tip, u.id, u.nume, u.prenume, "
+        "COALESCE((SELECT SUM(q.punctaj_maxim) FROM intrebari_chestionar q "
+        "WHERE q.chestionar_id = e.id), 0), "
+        "i.id, i.scor_brut, i.nota_finala, i.finalizata_la "
+        "FROM evaluari e "
+        "JOIN cursuri c ON c.id = e.curs_id "
+        "JOIN inscrieri_curs ic ON ic.curs_id = c.id "
+        "JOIN utilizatori u ON u.id = ic.student_id "
+        "LEFT JOIN incercari_evaluare i ON i.id = ("
+        "SELECT MAX(i2.id) FROM incercari_evaluare i2 "
+        "WHERE i2.evaluare_id = e.id AND i2.student_id = ic.student_id "
+        "AND i2.finalizata_la IS NOT NULL) "
+        "WHERE e.id = ? ORDER BY u.nume, u.prenume, u.id;";
+    return transformaToate<RezultatEvaluareInregistrare>(
+        conector.executaSelectParametrizat(selectRezultate, {std::to_string(evaluareId)}),
+        transformaRezultat);
 }
 
 void EvaluareRepository::salveazaRaspuns(int incercareId,

@@ -32,7 +32,6 @@ if(MSVC)
 endif()
 
 add_library(EduChainCore STATIC
-    include/Administrator.h
     include/AutentificareService.h
     include/Catalog.h
     include/Chestionar.h
@@ -66,7 +65,6 @@ add_library(EduChainCore STATIC
     include/Student.h
     include/UtilizatorBaza.h
     include/UtilizatorRepository.h
-    src/Administrator.cpp
     src/AutentificareService.cpp
     src/Chestionar.cpp
     src/ClientEdu.cpp
@@ -111,6 +109,7 @@ target_link_libraries(EduChainCore
     PUBLIC
         SQLiteAmalgamation
         Ws2_32
+        Bcrypt
 )
 
 add_executable(EduChainServer
@@ -143,9 +142,7 @@ if(EDUCHAIN_BUILD_QT)
         gui/ProfessorDashboard.h
         gui/ProfessorDashboard.cpp
         gui/ProfessorDashboard.ui
-        gui/AdminDashboard.h
-        gui/AdminDashboard.cpp
-        gui/AdminDashboard.ui
+        gui/EduChainResources.qrc
     )
 
     target_link_libraries(EduChainQtClient
@@ -161,6 +158,7 @@ if(EDUCHAIN_BUILD_QT)
     )
 
     set_target_properties(EduChainQtClient PROPERTIES
+        AUTORCC ON
         WIN32_EXECUTABLE ON
     )
 endif()
@@ -210,3 +208,5 @@ educhain_add_test(TestEndToEndEduChain
     tests/TestEndToEndEduChain.cpp)
 educhain_add_test(TestCursuriDisponibile
     tests/TestCursuriDisponibile.cpp)
+educhain_add_test(TestSecuritateAutentificare
+    tests/TestSecuritateAutentificare.cpp)

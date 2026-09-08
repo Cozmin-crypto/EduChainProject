@@ -88,4 +88,8 @@ public:
                                                        int incercareId);
     std::optional<IncercareEvaluareInregistrare> obtineIncercare(int studentId,
                                                                  int incercareId);
+    std::vector<RezultatEvaluareInregistrare> listeazaRezultateleStudentului(
+        int studentId);
+    std::vector<RezultatEvaluareInregistrare> listeazaRezultateleEvaluarii(
+        int actorId, int evaluareId);
 };

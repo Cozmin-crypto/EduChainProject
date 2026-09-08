@@ -9,6 +9,8 @@ class ConectorBazaDate {
 private:
     sqlite3* conexiune{};
 
+    void aplicaMigrariCompatibilitate();
+
 public:
     ConectorBazaDate() = default;
     ~ConectorBazaDate() noexcept;

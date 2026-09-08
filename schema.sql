@@ -4,12 +4,14 @@ PRAGMA foreign_keys = ON;
 
 BEGIN TRANSACTION;
 
--- UtilizatorBaza si specializarile Student, Personal, Profesor, Administrator.
+-- UtilizatorBaza si specializarile active Student si Profesor.
 CREATE TABLE utilizatori (
     id                  INTEGER PRIMARY KEY,
+    nume                TEXT NOT NULL,
+    prenume             TEXT NOT NULL,
     email               TEXT NOT NULL UNIQUE,
     parola              TEXT NOT NULL,
-    rol                 TEXT NOT NULL CHECK (rol IN ('student', 'profesor', 'administrator')),
+    rol                 TEXT NOT NULL CHECK (rol IN ('student', 'profesor')),
     data_ultima_logare  TEXT,
     creat_la            TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -181,7 +183,9 @@ CREATE TABLE intrebari_chestionar (
     raspuns_corect      TEXT NOT NULL CHECK (length(trim(raspuns_corect)) > 0),
     punctaj_maxim       REAL NOT NULL CHECK (punctaj_maxim >= 0.0),
     ordine              INTEGER NOT NULL CHECK (ordine >= 0),
-    FOREIGN KEY (chestionar_id) REFERENCES chestionare(evaluare_id) ON DELETE CASCADE,
+    -- Numele coloanei este pastrat pentru compatibilitate, dar intrebarile apartin
+    -- oricarui tip de evaluare (chestionar sau examen final).
+    FOREIGN KEY (chestionar_id) REFERENCES evaluari(id) ON DELETE CASCADE,
     UNIQUE (chestionar_id, ordine)
 );
 

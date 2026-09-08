@@ -8,7 +8,8 @@ class UtilizatorRepository;
 enum class StareAutentificare {
     Succes,
     EmailInexistent,
-    ParolaIncorecta
+    ParolaIncorecta,
+    RolNesuportat
 };
 
 struct RezultatAutentificare {

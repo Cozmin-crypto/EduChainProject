@@ -43,6 +43,8 @@ enum class TipCerereEdu : std::uint16_t {
     VerificaInscriere = 33,
     Inregistrare = 34,
     ListeazaCursuriDisponibile = 35,
+    ListeazaRezultateleMele = 36,
+    ListeazaRezultateleEvaluarii = 37,
     InregistrareStudent = Inregistrare
 };
 
@@ -99,7 +101,12 @@ enum class CampEdu : std::uint16_t {
     Incercare = 38,
     RaspunsCorect = 39,
     Inscris = 40,
-    StudentPublic = 41, Prenume = 42
+    StudentPublic = 41,
+    Prenume = 42,
+    NumeCurs = 43,
+    NumeEvaluare = 44,
+    Sustinuta = 46,
+    RezultatEvaluare = 47
 };
 
 enum class TipLectieEdu : std::uint16_t {
@@ -194,7 +201,28 @@ struct RezultatPublicEdu {
     double notaFinala{};
     std::optional<std::string> finalizataLa;
 };
-struct StudentPublicEdu { int id{}; std::string email; };
+
+struct RezultatEvaluarePublicEdu {
+    int evaluareId{};
+    int cursId{};
+    std::string numeCurs;
+    std::string numeEvaluare;
+    TipEvaluareEdu tipEvaluare{TipEvaluareEdu::Chestionar};
+    int studentId{};
+    std::string numeStudent;
+    std::string prenumeStudent;
+    double punctajMaxim{};
+    bool sustinuta{};
+    std::optional<int> incercareId;
+    double scorBrut{};
+    double notaFinala{};
+    std::optional<std::string> finalizataLa;
+};
+struct StudentPublicEdu {
+    int id{};
+    std::string nume;
+    std::string prenume;
+};
 
 class ProtocolEdu {
 public:
@@ -217,6 +245,10 @@ public:
     static IntrebarePublicEdu decodificaIntrebare(const std::string& date);
     static std::string codificaIncercare(const IncercarePublicEdu& incercare);
     static IncercarePublicEdu decodificaIncercare(const std::string& date);
+    static std::string codificaRezultatEvaluare(
+        const RezultatEvaluarePublicEdu& rezultat);
+    static RezultatEvaluarePublicEdu decodificaRezultatEvaluare(
+        const std::string& date);
     static std::string codificaStudent(const StudentPublicEdu& student);
     static StudentPublicEdu decodificaStudent(const std::string& date);
 };

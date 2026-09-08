@@ -106,6 +106,9 @@ public:
     void salveazaRaspuns(int incercareId, int intrebareId,
                          const std::string& continut);
     IncercarePublicEdu finalizeazaIncercare(int incercareId);
+    std::vector<RezultatEvaluarePublicEdu> listeazaRezultateleMele();
+    std::vector<RezultatEvaluarePublicEdu> listeazaRezultateleEvaluarii(
+        int evaluareId);
     void inscrieLaCurs(int cursId);
     void retrageDeLaCurs(int cursId);
     void inscrieStudentLaCurs(int studentId,int cursId);

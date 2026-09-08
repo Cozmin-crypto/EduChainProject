@@ -2,6 +2,7 @@
 
 #include "ExceptieEdu.h"
 
+#include <algorithm>
 #include <cctype>
 #include <filesystem>
 #include <fstream>
@@ -28,6 +29,111 @@ std::string citesteSchema() {
 
     return {std::istreambuf_iterator<char>(fisier), std::istreambuf_iterator<char>()};
 }
+}
+
+void ConectorBazaDate::aplicaMigrariCompatibilitate() {
+    const auto coloaneUtilizatori = executaSelect("PRAGMA table_info(utilizatori);");
+    const auto areColoana = [&](const std::string& numeColoana) {
+        return std::any_of(
+            coloaneUtilizatori.begin(), coloaneUtilizatori.end(),
+            [&](const std::vector<std::string>& coloana) {
+                return coloana.size() > 1 && coloana[1] == numeColoana;
+            });
+    };
+    if (!areColoana("nume") || !areColoana("prenume")) {
+        executaInterogare("BEGIN IMMEDIATE;");
+        try {
+            if (!areColoana("nume")) {
+                executaInterogare(
+                    "ALTER TABLE utilizatori ADD COLUMN nume TEXT NOT NULL DEFAULT ''; ");
+            }
+            if (!areColoana("prenume")) {
+                executaInterogare(
+                    "ALTER TABLE utilizatori ADD COLUMN prenume TEXT NOT NULL DEFAULT ''; ");
+            }
+            executaInterogare(
+                "UPDATE utilizatori SET "
+                "nume = CASE WHEN trim(nume) = '' THEN "
+                "CASE WHEN rol = 'student' THEN 'Student' ELSE 'Profesor' END "
+                "ELSE nume END, "
+                "prenume = CASE WHEN trim(prenume) = '' THEN CAST(id AS TEXT) "
+                "ELSE prenume END;");
+            executaInterogare("COMMIT;");
+        } catch (...) {
+            try {
+                executaInterogare("ROLLBACK;");
+            } catch (...) {
+            }
+            throw;
+        }
+    }
+
+    const auto tabele = executaSelectParametrizat(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?;",
+        {"intrebari_chestionar"});
+    if (tabele.empty()) {
+        return;
+    }
+
+    const auto cheiExterne = executaSelect("PRAGMA foreign_key_list(intrebari_chestionar);");
+    bool relatieVeche = false;
+    for (const auto& cheie : cheiExterne) {
+        // PRAGMA foreign_key_list: coloana 2 este tabela referita.
+        if (cheie.size() > 2 && cheie[2] == "chestionare") {
+            relatieVeche = true;
+            break;
+        }
+    }
+    if (!relatieVeche) {
+        return;
+    }
+
+    executaInterogare("PRAGMA foreign_keys = OFF;");
+    try {
+        executaInterogare(
+            "BEGIN IMMEDIATE;"
+            "ALTER TABLE raspunsuri_chestionar RENAME TO raspunsuri_chestionar_legacy;"
+            "ALTER TABLE intrebari_chestionar RENAME TO intrebari_chestionar_legacy;"
+            "CREATE TABLE intrebari_chestionar ("
+            "id INTEGER PRIMARY KEY,"
+            "chestionar_id INTEGER NOT NULL,"
+            "enunt TEXT NOT NULL,"
+            "raspuns_corect TEXT NOT NULL CHECK (length(trim(raspuns_corect)) > 0),"
+            "punctaj_maxim REAL NOT NULL CHECK (punctaj_maxim >= 0.0),"
+            "ordine INTEGER NOT NULL CHECK (ordine >= 0),"
+            "FOREIGN KEY (chestionar_id) REFERENCES evaluari(id) ON DELETE CASCADE,"
+            "UNIQUE (chestionar_id, ordine));"
+            "INSERT INTO intrebari_chestionar "
+            "(id, chestionar_id, enunt, raspuns_corect, punctaj_maxim, ordine) "
+            "SELECT id, chestionar_id, enunt, raspuns_corect, punctaj_maxim, ordine "
+            "FROM intrebari_chestionar_legacy;"
+            "CREATE TABLE raspunsuri_chestionar ("
+            "incercare_id INTEGER NOT NULL,"
+            "intrebare_id INTEGER NOT NULL,"
+            "raspuns TEXT NOT NULL,"
+            "punctaj_obtinut REAL NOT NULL DEFAULT 0.0 CHECK (punctaj_obtinut >= 0.0),"
+            "PRIMARY KEY (incercare_id, intrebare_id),"
+            "FOREIGN KEY (incercare_id) REFERENCES incercari_evaluare(id) ON DELETE CASCADE,"
+            "FOREIGN KEY (intrebare_id) REFERENCES intrebari_chestionar(id) ON DELETE CASCADE);"
+            "INSERT INTO raspunsuri_chestionar "
+            "(incercare_id, intrebare_id, raspuns, punctaj_obtinut) "
+            "SELECT incercare_id, intrebare_id, raspuns, punctaj_obtinut "
+            "FROM raspunsuri_chestionar_legacy;"
+            "DROP TABLE raspunsuri_chestionar_legacy;"
+            "DROP TABLE intrebari_chestionar_legacy;"
+            "COMMIT;");
+    } catch (...) {
+        try {
+            executaInterogare("ROLLBACK;");
+        } catch (...) {
+        }
+        executaInterogare("PRAGMA foreign_keys = ON;");
+        throw;
+    }
+    executaInterogare("PRAGMA foreign_keys = ON;");
+    if (!executaSelect("PRAGMA foreign_key_check;").empty()) {
+        throw ExceptieEdu("Migrarea bazei de date a produs relatii invalide.");
+    }
 }
 
 ConectorBazaDate::~ConectorBazaDate() noexcept {
@@ -69,6 +175,8 @@ void ConectorBazaDate::deschideConexiune(const std::string& caleBazaDate) {
 
         if (bazaNoua) {
             executaInterogare(citesteSchema());
+        } else {
+            aplicaMigrariCompatibilitate();
         }
     } catch (...) {
         sqlite3_close_v2(conexiune);

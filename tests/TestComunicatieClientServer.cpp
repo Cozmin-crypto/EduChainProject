@@ -7,6 +7,7 @@
 
 #include <exception>
 #include <chrono>
+#include <cmath>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -25,6 +26,23 @@ int main() {
     const int instanteWinsockInitiale = InitializatorWinsock::numarInstanteActive();
 
     try {
+        const RezultatEvaluarePublicEdu rezultatInitial{
+            11, 7, "POO", "Examen final", TipEvaluareEdu::ExamenFinal,
+            3, "Popescu", "Ion", 20.0, true, 19, 17.5, 8.75,
+            std::string("2026-09-06 12:00:00")};
+        const auto rezultatDecodificat = ProtocolEdu::decodificaRezultatEvaluare(
+            ProtocolEdu::codificaRezultatEvaluare(rezultatInitial));
+        verifica(rezultatDecodificat.evaluareId == rezultatInitial.evaluareId &&
+                     rezultatDecodificat.cursId == rezultatInitial.cursId &&
+                     rezultatDecodificat.tipEvaluare == TipEvaluareEdu::ExamenFinal &&
+                     rezultatDecodificat.numeStudent == "Popescu" &&
+                     rezultatDecodificat.prenumeStudent == "Ion" &&
+                     rezultatDecodificat.sustinuta &&
+                     rezultatDecodificat.incercareId == rezultatInitial.incercareId &&
+                     rezultatDecodificat.finalizataLa == rezultatInitial.finalizataLa &&
+                     std::fabs(rezultatDecodificat.notaFinala - 8.75) < 0.0001,
+                 "DTO-ul rezultatului nu supravietuieste codificarii protocolului");
+
         {
             ServerEdu server(0);
             server.pornesteNod();

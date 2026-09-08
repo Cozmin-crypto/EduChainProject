@@ -58,7 +58,9 @@ private:
     RaspunsEdu proceseazaCerereIntrebare(const CerereEdu& cerere,
                                          const SesiuneClient& sesiune);
     RaspunsEdu proceseazaCerereIncercare(const CerereEdu& cerere,
-                                         const SesiuneClient& sesiune);
+                                          const SesiuneClient& sesiune);
+    RaspunsEdu proceseazaCerereRezultat(const CerereEdu& cerere,
+                                        const SesiuneClient& sesiune);
     RaspunsEdu proceseazaCerereInscriere(const CerereEdu& cerere,
                                          const SesiuneClient& sesiune);
     RaspunsEdu proceseazaListeazaCursuriDisponibile(

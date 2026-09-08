@@ -45,6 +45,22 @@ struct RaspunsChestionarInregistrare {
     double punctajObtinut{};
 };
 
+struct RezultatEvaluareInregistrare {
+    int evaluareId{};
+    int cursId{};
+    std::string numeCurs;
+    std::string numeEvaluare;
+    std::string tipEvaluare;
+    int studentId{};
+    std::string numeStudent;
+    std::string prenumeStudent;
+    double punctajMaxim{};
+    std::optional<int> incercareId;
+    double scorBrut{};
+    double notaFinala{};
+    std::optional<std::string> finalizataLa;
+};
+
 class EvaluareRepository {
 private:
     ConectorBazaDate& conector;
@@ -52,7 +68,7 @@ private:
     void valideazaCursExistent(int cursId);
     void valideazaProfesorExistent(int profesorId);
     void valideazaStudentExistent(int studentId);
-    void valideazaChestionarExistent(int chestionarId);
+    void valideazaEvaluareExistenta(int evaluareId);
 
 public:
     explicit EvaluareRepository(ConectorBazaDate& conector);
@@ -95,7 +111,12 @@ public:
     int adaugaIncercare(int evaluareId, int studentId);
     bool finalizeazaIncercare(int incercareId, double scorBrut, double notaFinala);
     std::optional<IncercareEvaluareInregistrare> cautaIncercareDupaId(int incercareId);
+    std::optional<IncercareEvaluareInregistrare> cautaIncercareDupaEvaluareStudent(
+        int evaluareId, int studentId);
     std::vector<IncercareEvaluareInregistrare> listeazaIncercari(int evaluareId);
+
+    std::vector<RezultatEvaluareInregistrare> listeazaRezultateStudent(int studentId);
+    std::vector<RezultatEvaluareInregistrare> listeazaRezultateEvaluare(int evaluareId);
 
     void salveazaRaspuns(int incercareId,
                          int intrebareId,

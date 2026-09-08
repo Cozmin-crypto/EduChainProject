@@ -17,13 +17,10 @@ UtilizatorInregistrare ReguliAccesService::obtineActor(int actorId) {
     return *actor;
 }
 
-void ReguliAccesService::verificaAdministratorSauProprietar(
+void ReguliAccesService::verificaProfesorProprietar(
     int actorId,
     const CursInregistrare& curs) {
     const auto actor = obtineActor(actorId);
-    if (actor.rol == "administrator") {
-        return;
-    }
     if (actor.rol == "profesor" && curs.proprietarId == actor.id) {
         return;
     }

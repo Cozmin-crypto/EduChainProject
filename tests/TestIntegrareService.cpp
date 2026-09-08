@@ -55,14 +55,6 @@ void adaugaStudent(ConectorBazaDate& conector, int id) {
         "INSERT INTO studenti (utilizator_id) VALUES (?);", {std::to_string(id)});
 }
 
-void adaugaAdministrator(ConectorBazaDate& conector, int id) {
-    conector.executaInterogareParametrizata(
-        "INSERT INTO personal (utilizator_id, departament, data_angajarii) "
-        "VALUES (?, ?, ?);", {std::to_string(id), "Administratie", "2026-07-18"});
-    conector.executaInterogareParametrizata(
-        "INSERT INTO administratori (utilizator_id, nivel_acces) VALUES (?, ?);",
-        {std::to_string(id), "10"});
-}
 }
 
 int main() {
@@ -88,12 +80,9 @@ int main() {
             "profesor2@example.ro", "parola-2", "profesor");
         const int student = utilizatori.adaugaUtilizator(
             "student@example.ro", "parola-student", "student");
-        const int administrator = utilizatori.adaugaUtilizator(
-            "admin@example.ro", "parola-admin", "administrator");
         adaugaProfesor(conector, profesor1);
         adaugaProfesor(conector, profesor2);
         adaugaStudent(conector, student);
-        adaugaAdministrator(conector, administrator);
 
         const auto autentificareReusita = autentificare.autentifica(
             "profesor1@example.ro", "parola-1");
@@ -101,6 +90,44 @@ int main() {
                      autentificareReusita.utilizatorId == profesor1 &&
                      autentificareReusita.rol == "profesor",
                  "autentificarea valida a esuat");
+        const auto profesorMigrat = utilizatori.cautaDupaId(profesor1);
+        verifica(profesorMigrat && profesorMigrat->parola != "parola-1" &&
+                     profesorMigrat->parola.rfind("$pbkdf2-sha256$", 0) == 0,
+                 "parola veche in clar nu a fost migrata la primul login");
+        verifica(autentificare.autentifica(
+                     "profesor1@example.ro", "parola-1").succes,
+                 "login-ul cu hash-ul migrat a esuat");
+
+        const int contNou = autentificare.inregistreaza(
+            "Popescu", "Ana", "ana.popescu@example.ro", "parola-sigura", "student");
+        const auto utilizatorNou = utilizatori.cautaDupaId(contNou);
+        verifica(utilizatorNou && utilizatorNou->nume == "Popescu" &&
+                     utilizatorNou->prenume == "Ana" &&
+                     utilizatorNou->parola != "parola-sigura" &&
+                     utilizatorNou->parola.rfind("$pbkdf2-sha256$", 0) == 0,
+                 "contul nou nu pastreaza numele sau parola hash-uita");
+        verifica(autentificare.autentifica(
+                     "ana.popescu@example.ro", "parola-sigura").succes,
+                 "login-ul contului nou cu hash valid a esuat");
+        verifica(!autentificare.autentifica(
+                      "ana.popescu@example.ro", "parola-gresita").succes,
+                 "parola gresita a fost acceptata");
+        verifica(aruncaExceptieEdu([&] {
+                     autentificare.inregistreaza(
+                         "Admin", "Legacy", "admin@example.ro",
+                         "parola-admin", "administrator");
+                 }), "rolul administrator este acceptat la inregistrare");
+        conector.executaInterogare("PRAGMA ignore_check_constraints = ON;");
+        conector.executaInterogareParametrizata(
+            "INSERT INTO utilizatori (nume,prenume,email,parola,rol) "
+            "VALUES (?,?,?,?,?);",
+            {"Legacy", "Admin", "legacy.admin@example.ro", "parola-admin", "administrator"});
+        conector.executaInterogare("PRAGMA ignore_check_constraints = OFF;");
+        const auto adminLegacy = autentificare.autentifica(
+            "legacy.admin@example.ro", "parola-admin");
+        verifica(!adminLegacy.succes &&
+                     adminLegacy.stare == StareAutentificare::RolNesuportat,
+                 "un cont administrator vechi se poate autentifica");
         const auto emailInexistent = autentificare.autentifica(
             "absent@example.ro", "parola");
         const auto parolaGresita = autentificare.autentifica(
@@ -142,16 +169,6 @@ int main() {
                  }),
                  "studentul a modificat un curs");
 
-        const int cursCreatDeAdmin = cursuri.creeazaCurs(
-            {administrator, profesor2, "Curs creat de administrator", std::nullopt});
-        verifica(cursuri.obtineCurs(cursCreatDeAdmin)->proprietarId == profesor2,
-                 "administratorul a fost setat incorect drept proprietar");
-        verifica(cursuri.actualizeazaCurs(
-                     {administrator, cursProfesor1, "Curs administrat", std::nullopt}),
-                 "administratorul nu a putut modifica un curs");
-        verifica(cursuri.stergeCurs(administrator, cursCreatDeAdmin),
-                 "administratorul nu a putut sterge un curs");
-
         CerereSalvareLectie cerereLectie;
         cerereLectie.actorId = profesor1;
         cerereLectie.cursId = cursProfesor1;
@@ -179,7 +196,7 @@ int main() {
         actualizareLectie.lectieId = lectieId;
         actualizareLectie.nume = "Lectie video";
         actualizareLectie.tip = "video";
-        actualizareLectie.continut = "video.mp4";
+        actualizareLectie.continut = "https://video.educhain.test/lectie.mp4";
         actualizareLectie.dimensiuneOcteti = 2048;
         actualizareLectie.durata = 120;
         actualizareLectie.codec = "h264";

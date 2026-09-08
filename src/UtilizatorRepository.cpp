@@ -25,9 +25,8 @@ void valideazaParola(const std::string& parola) {
 }
 
 void valideazaRol(const std::string& rol) {
-    if (rol != "student" && rol != "profesor" && rol != "administrator") {
-        throw ExceptieEdu(
-            "Rolul utilizatorului trebuie sa fie student, profesor sau administrator.");
+    if (rol != "student" && rol != "profesor") {
+        throw ExceptieEdu("Rolul utilizatorului trebuie sa fie student sau profesor.");
     }
 }
 
@@ -40,7 +39,7 @@ void valideazaDateUtilizator(const std::string& email,
 }
 
 UtilizatorInregistrare transformaRandul(const std::vector<std::string>& rand) {
-    constexpr std::size_t numarColoaneUtilizator = 6;
+    constexpr std::size_t numarColoaneUtilizator = 8;
     if (rand.size() != numarColoaneUtilizator) {
         throw ExceptieEdu("Randul utilizatorului nu contine numarul asteptat de coloane.");
     }
@@ -51,7 +50,9 @@ UtilizatorInregistrare transformaRandul(const std::vector<std::string>& rand) {
         rand.at(2),
         rand.at(3),
         rand.at(4),
-        rand.at(5)
+        rand.at(5),
+        rand.at(6),
+        rand.at(7)
     };
 }
 }
@@ -62,12 +63,16 @@ UtilizatorRepository::UtilizatorRepository(ConectorBazaDate& conector)
 
 int UtilizatorRepository::adaugaUtilizator(const std::string& email,
                                            const std::string& parola,
-                                           const std::string& rol) {
+                                           const std::string& rol,
+                                           const std::string& nume,
+                                           const std::string& prenume) {
     valideazaDateUtilizator(email, parola, rol);
 
     conector.executaInterogareParametrizata(
-        "INSERT INTO utilizatori (email, parola, rol) VALUES (?, ?, ?);",
-        {email, parola, rol});
+        "INSERT INTO utilizatori (nume, prenume, email, parola, rol) "
+        "VALUES (?, ?, ?, ?, ?);",
+        {nume.empty() ? (rol == "student" ? "Student" : "Profesor") : nume,
+         prenume.empty() ? "nou" : prenume, email, parola, rol});
 
     const auto rezultat = conector.executaSelect("SELECT last_insert_rowid();");
     return std::stoi(rezultat.at(0).at(0));
@@ -97,7 +102,7 @@ std::optional<UtilizatorInregistrare> UtilizatorRepository::cautaDupaId(int id) 
     valideazaId(id);
 
     const auto rezultate = conector.executaSelectParametrizat(
-        "SELECT id, email, parola, rol, data_ultima_logare, creat_la "
+        "SELECT id, nume, prenume, email, parola, rol, data_ultima_logare, creat_la "
         "FROM utilizatori WHERE id = ?;",
         {std::to_string(id)});
 
@@ -112,7 +117,7 @@ std::optional<UtilizatorInregistrare> UtilizatorRepository::cautaDupaEmail(
     valideazaEmail(email);
 
     const auto rezultate = conector.executaSelectParametrizat(
-        "SELECT id, email, parola, rol, data_ultima_logare, creat_la "
+        "SELECT id, nume, prenume, email, parola, rol, data_ultima_logare, creat_la "
         "FROM utilizatori WHERE email = ?;",
         {email});
 
@@ -122,15 +127,26 @@ std::optional<UtilizatorInregistrare> UtilizatorRepository::cautaDupaEmail(
     return transformaRandul(rezultate.front());
 }
 
+bool UtilizatorRepository::actualizeazaParola(int id,
+                                              const std::string& parolaHash) {
+    valideazaId(id);
+    valideazaParola(parolaHash);
+    return conector.executaInterogareParametrizata(
+               "UPDATE utilizatori SET parola = ? WHERE id = ?;",
+               {parolaHash, std::to_string(id)}) > 0;
+}
+
 int UtilizatorRepository::inregistreazaUtilizator(const std::string& email,
                                                   const std::string& parola,
-                                                  const std::string& rol) {
+                                                  const std::string& rol,
+                                                  const std::string& nume,
+                                                  const std::string& prenume) {
     if (rol != "student" && rol != "profesor") {
         throw ExceptieEdu("La inregistrare rolul trebuie sa fie student sau profesor.");
     }
     conector.executaInterogareParametrizata("BEGIN TRANSACTION;",{});
     try {
-        const int id = adaugaUtilizator(email, parola, rol);
+        const int id = adaugaUtilizator(email, parola, rol, nume, prenume);
         if (rol == "student") {
             conector.executaInterogareParametrizata(
                 "INSERT INTO studenti (utilizator_id) VALUES (?);",
@@ -152,5 +168,5 @@ int UtilizatorRepository::inregistreazaUtilizator(const std::string& email,
 
 int UtilizatorRepository::inregistreazaStudent(const std::string& email,
                                                 const std::string& parola) {
-    return inregistreazaUtilizator(email, parola, "student");
+    return inregistreazaUtilizator(email, parola, "student", "Student", "nou");
 }

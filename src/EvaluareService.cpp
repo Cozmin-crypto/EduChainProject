@@ -24,7 +24,7 @@ std::string normalizeazaRaspuns(std::string text) {
 }
 }
 EvaluareService::EvaluareService(EvaluareRepository&e,CursRepository&c,UtilizatorRepository&u,InscriereService&i):evaluari(e),cursuri(c),reguli(u),inscrieri(&i){}
-std::vector<EvaluareInregistrare> EvaluareService::listeazaDupaCurs(int actorId,int cursId){const auto actor=reguli.obtineActor(actorId);if(actor.rol=="student"){if(!inscrieri)throw ExceptieEdu("Serviciul de inscrieri nu este disponibil.");inscrieri->verificaAccesStudentLaCurs(actorId,cursId);}else{reguli.verificaAdministratorSauProprietar(actorId,obtineCursExistent(cursId));}return evaluari.listeazaDupaCurs(cursId);}
+std::vector<EvaluareInregistrare> EvaluareService::listeazaDupaCurs(int actorId,int cursId){const auto actor=reguli.obtineActor(actorId);if(actor.rol=="student"){if(!inscrieri)throw ExceptieEdu("Serviciul de inscrieri nu este disponibil.");inscrieri->verificaAccesStudentLaCurs(actorId,cursId);}else{reguli.verificaProfesorProprietar(actorId,obtineCursExistent(cursId));}return evaluari.listeazaDupaCurs(cursId);}
 
 EvaluareService::EvaluareService(EvaluareRepository& evaluari,
                                  CursRepository& cursuri,
@@ -52,7 +52,7 @@ EvaluareInregistrare EvaluareService::obtineEvaluareExistenta(int evaluareId) {
 void EvaluareService::verificaAdministrareEvaluare(
     int actorId,
     const EvaluareInregistrare& evaluare) {
-    reguli.verificaAdministratorSauProprietar(
+    reguli.verificaProfesorProprietar(
         actorId, obtineCursExistent(evaluare.cursId));
 }
 
@@ -65,7 +65,7 @@ void EvaluareService::verificaAccesCitireEvaluare(
         inscrieri->verificaAccesStudentLaCurs(actorId, evaluare.cursId);
         return;
     }
-    reguli.verificaAdministratorSauProprietar(
+    reguli.verificaProfesorProprietar(
         actorId, obtineCursExistent(evaluare.cursId));
 }
 
@@ -93,7 +93,7 @@ std::optional<EvaluareInregistrare> EvaluareService::obtineEvaluare(int evaluare
 
 int EvaluareService::creeazaEvaluare(const CerereSalvareEvaluare& cerere) {
     const auto curs = obtineCursExistent(cerere.cursId);
-    reguli.verificaAdministratorSauProprietar(cerere.actorId, curs);
+    reguli.verificaProfesorProprietar(cerere.actorId, curs);
     return evaluari.adaugaEvaluare(
         curs.id, curs.proprietarId, cerere.nume, cerere.tip, cerere.limitaTimp,
         cerere.esteObligatorie, cerere.numarIntrebari, cerere.pondere);
@@ -104,7 +104,7 @@ bool EvaluareService::actualizeazaEvaluare(
     const auto existenta = obtineEvaluareExistenta(cerere.evaluareId);
     verificaAdministrareEvaluare(cerere.actorId, existenta);
     const auto cursDestinatie = obtineCursExistent(cerere.cursId);
-    reguli.verificaAdministratorSauProprietar(cerere.actorId, cursDestinatie);
+    reguli.verificaProfesorProprietar(cerere.actorId, cursDestinatie);
     return evaluari.actualizeazaEvaluare(
         existenta.id, cursDestinatie.id, cursDestinatie.proprietarId,
         cerere.nume, cerere.tip, cerere.limitaTimp, cerere.esteObligatorie,
@@ -119,9 +119,6 @@ bool EvaluareService::stergeEvaluare(int actorId, int evaluareId) {
 
 int EvaluareService::adaugaIntrebare(const CerereIntrebare& cerere) {
     const auto evaluare = obtineEvaluareExistenta(cerere.chestionarId);
-    if (evaluare.tip != "chestionar") {
-        throw ExceptieEdu("Intrebarile pot fi adaugate doar unui chestionar.");
-    }
     verificaAdministrareEvaluare(cerere.actorId, evaluare);
     return evaluari.adaugaIntrebare(
         evaluare.id, cerere.enunt, cerere.raspunsCorect,
@@ -131,9 +128,6 @@ int EvaluareService::adaugaIntrebare(const CerereIntrebare& cerere) {
 bool EvaluareService::actualizeazaIntrebare(
     const CerereActualizareIntrebare& cerere) {
     const auto evaluare = obtineEvaluareExistenta(cerere.chestionarId);
-    if (evaluare.tip != "chestionar") {
-        throw ExceptieEdu("Intrebarea trebuie sa apartina unui chestionar.");
-    }
     verificaAdministrareEvaluare(cerere.actorId, evaluare);
     const auto intrebari = evaluari.listeazaIntrebari(cerere.chestionarId);
     const bool apartineChestionarului = std::any_of(
@@ -172,6 +166,9 @@ int EvaluareService::pornesteIncercare(int studentId, int evaluareId) {
     reguli.verificaStudent(studentId);
     const auto evaluare=obtineEvaluareExistenta(evaluareId);
     if(inscrieri)inscrieri->verificaAccesStudentLaCurs(studentId,evaluare.cursId);
+    if (evaluari.cautaIncercareDupaEvaluareStudent(evaluareId, studentId)) {
+        throw ExceptieEdu("EVALUARE_DEJA_SUSTINUTA");
+    }
     return evaluari.adaugaIncercare(evaluareId, studentId);
 }
 
@@ -198,6 +195,14 @@ IncercareEvaluareInregistrare EvaluareService::finalizeazaIncercare(
     if (incercare.finalizataLa) {
         throw ExceptieEdu("Incercarea este deja finalizata.");
     }
+    const auto incercariEvaluare = evaluari.listeazaIncercari(incercare.evaluareId);
+    if (std::any_of(incercariEvaluare.begin(), incercariEvaluare.end(),
+                    [&](const auto& alta) {
+                        return alta.studentId == studentId &&
+                               alta.id != incercare.id && alta.finalizataLa.has_value();
+                    })) {
+        throw ExceptieEdu("EVALUARE_DEJA_SUSTINUTA");
+    }
     const auto intrebari = evaluari.listeazaIntrebari(incercare.evaluareId);
     double punctajMaxim = 0.0;
     for (const auto& intrebare : intrebari) punctajMaxim += intrebare.punctajMaxim;
@@ -220,4 +225,17 @@ std::optional<IncercareEvaluareInregistrare> EvaluareService::obtineIncercare(
     int studentId,
     int incercareId) {
     return obtineIncercareStudent(studentId, incercareId);
+}
+
+std::vector<RezultatEvaluareInregistrare>
+EvaluareService::listeazaRezultateleStudentului(int studentId) {
+    reguli.verificaStudent(studentId);
+    return evaluari.listeazaRezultateStudent(studentId);
+}
+
+std::vector<RezultatEvaluareInregistrare>
+EvaluareService::listeazaRezultateleEvaluarii(int actorId, int evaluareId) {
+    const auto evaluare = obtineEvaluareExistenta(evaluareId);
+    verificaAdministrareEvaluare(actorId, evaluare);
+    return evaluari.listeazaRezultateEvaluare(evaluareId);
 }
