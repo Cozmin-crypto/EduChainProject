@@ -219,6 +219,20 @@ QPushButton#statisticsButton:focus {
     padding-left: 11px;
 }
 
+QPushButton#homeButton:checked,
+QPushButton#myCoursesButton:checked,
+QPushButton#availableCoursesButton:checked,
+QPushButton#lessonsButton:checked,
+QPushButton#evaluationsButton:checked,
+QPushButton#resultsButton:checked,
+QPushButton#studentsButton:checked,
+QPushButton#createCourseButton:checked {
+    background: #2346FF;
+    color: #FFFFFF;
+    border-left: 4px solid #00C9C9;
+    padding-left: 11px;
+}
+
 QStackedWidget#dashboardStack,
 QStackedWidget#pagesStack {
     background: transparent;
@@ -576,4 +590,20 @@ QToolTip {
     color: #FFFFFF;
     border: 0;
     padding: 7px;
+}
+
+QMessageBox {
+    background-color: #F5F8FF;
+}
+
+QMessageBox QLabel {
+    color: #0B0B5C;
+    font-size: 15px;
+    min-width: 320px;
+}
+
+QMessageBox QPushButton {
+    min-width: 110px;
+    border-radius: 9px;
+    padding: 9px 16px;
 }

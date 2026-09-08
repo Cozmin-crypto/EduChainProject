@@ -7,6 +7,7 @@
 #include "ui_ProfessorDashboard.h"
 
 #include <QComboBox>
+#include <QButtonGroup>
 #include <QCheckBox>
 #include <QDoubleSpinBox>
 #include <QHeaderView>
@@ -56,8 +57,18 @@ ProfessorDashboard::ProfessorDashboard(std::shared_ptr<ApplicationContext> conte
     : QWidget(parent), ui_(std::make_unique<Ui::ProfessorDashboard>()),
       context_(std::move(context)) {
     ui_->setupUi(this);
+    auto* navigatie = new QButtonGroup(this);
+    navigatie->setExclusive(true);
+    for (QPushButton* buton : {ui_->homeButton, ui_->myCoursesButton,
+                               ui_->createCourseButton, ui_->lessonsButton,
+                               ui_->evaluationsButton, ui_->studentsButton,
+                               ui_->resultsButton}) {
+        buton->setCheckable(true);
+        navigatie->addButton(buton);
+    }
+    ui_->homeButton->setChecked(true);
     ui_->userLabel->setText(QString::fromUtf8("Utilizator: %1")
-                                .arg(QString::fromStdString(context_->email())));
+                                .arg(QString::fromStdString(context_->numeComplet())));
     ui_->roleLabel->setText(QString::fromUtf8("Rol: %1")
                                 .arg(QString::fromStdString(context_->rol())));
     actualizeazaStareConexiune();
@@ -200,6 +211,17 @@ bool ProfessorDashboard::poateExecutaCereri(QLabel* statusLabel) {
 }
 
 void ProfessorDashboard::actualizeazaStareConexiune() {
+    if (!context_->esteConectat()) {
+        for (auto* control : findChildren<QPushButton*>()) control->setEnabled(false);
+        for (auto* control : findChildren<QComboBox*>()) control->setEnabled(false);
+        for (auto* control : findChildren<QListWidget*>()) control->setEnabled(false);
+        for (auto* control : findChildren<QTableWidget*>()) control->setEnabled(false);
+        for (auto* control : findChildren<QLineEdit*>()) control->setEnabled(false);
+        for (auto* control : findChildren<QTextEdit*>()) control->setEnabled(false);
+        for (auto* control : findChildren<QSpinBox*>()) control->setEnabled(false);
+        for (auto* control : findChildren<QDoubleSpinBox*>()) control->setEnabled(false);
+        for (auto* control : findChildren<QCheckBox*>()) control->setEnabled(false);
+    }
     ui_->connectionLabel->setText(
         context_->esteConectat()
             ? QString::fromUtf8("Conectat la %1:%2")
@@ -231,7 +253,10 @@ void ProfessorDashboard::actualizeazaControaleleAdministrarii(bool cerereInCurs)
     ui_->studentsList->setEnabled(
         disponibil && cursStudentiValid && ui_->studentsList->count() > 0);
     ui_->enrollStudentGroup->setEnabled(disponibil && cursStudentiValid);
-    ui_->enrollStudentButton->setEnabled(disponibil && cursStudentiValid);
+    ui_->eligibleStudentCombo->setEnabled(disponibil && cursStudentiValid &&
+                                          ui_->eligibleStudentCombo->count() > 0);
+    ui_->enrollStudentButton->setEnabled(disponibil && cursStudentiValid &&
+                                         ui_->eligibleStudentCombo->currentData(Qt::UserRole).toInt() > 0);
 }
 
 void ProfessorDashboard::incarcaCursurileAcasa() {
@@ -528,6 +553,7 @@ void ProfessorDashboard::incarcaStudentiiCursuluiCuSelectie(int studentPreferat)
     ui_->studentsStatusLabel->setText(QString::fromUtf8(u8"Încărcare Studenți..."));
     try {
         const auto studenti = context_->client().listeazaStudentiCurs(cursId);
+        const auto eligibili = context_->client().listeazaStudentiEligibili(cursId);
         QSignalBlocker blocare(ui_->studentsList);
         ui_->studentsList->clear();
         int randSelectat = -1;
@@ -543,6 +569,17 @@ void ProfessorDashboard::incarcaStudentiiCursuluiCuSelectie(int studentPreferat)
             if (student.id == studentPreferat) randSelectat = ui_->studentsList->count() - 1;
         }
         blocare.unblock();
+        {
+            QSignalBlocker blocareEligibili(ui_->eligibleStudentCombo);
+            ui_->eligibleStudentCombo->clear();
+            for (const auto& student : eligibili) {
+                ui_->eligibleStudentCombo->addItem(
+                    QString::fromUtf8("%1 %2")
+                        .arg(QString::fromStdString(student.prenume),
+                             QString::fromStdString(student.nume)),
+                    student.id);
+            }
+        }
         if (studenti.empty()) {
             ui_->studentsStatusLabel->setText(
                 QString::fromUtf8(u8"Cursul nu are Studenți înscriși."));
@@ -570,7 +607,7 @@ void ProfessorDashboard::inscrieStudentLaCurs() {
         return;
     }
     const int cursId = ui_->studentsCourseCombo->currentData(Qt::UserRole).toInt();
-    const int studentId = ui_->studentIdSpin->value();
+    const int studentId = ui_->eligibleStudentCombo->currentData(Qt::UserRole).toInt();
     if (cursId <= 0 || studentId <= 0) {
         ui_->studentsStatusLabel->setText(
             QString::fromUtf8(u8"Cursul și ID-ul Studentului trebuie să fie valide."));

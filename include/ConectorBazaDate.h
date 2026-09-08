@@ -8,6 +8,7 @@ struct sqlite3;
 class ConectorBazaDate {
 private:
     sqlite3* conexiune{};
+    std::string caleBazaDate;
 
     void aplicaMigrariCompatibilitate();
 
@@ -20,6 +21,7 @@ public:
 
     void deschideConexiune(const std::string& caleBazaDate = "EduChain.db");
     void inchideConexiune();
+    void creeazaBackup();
     bool esteConectat() const;
     void executaInterogare(const std::string& interogare);
     int executaInterogareParametrizata(

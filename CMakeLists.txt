@@ -210,3 +210,7 @@ educhain_add_test(TestCursuriDisponibile
     tests/TestCursuriDisponibile.cpp)
 educhain_add_test(TestSecuritateAutentificare
     tests/TestSecuritateAutentificare.cpp)
+educhain_add_test(TestBackupRestore
+    tests/TestBackupRestore.cpp)
+educhain_add_test(TestStareConexiune
+    tests/TestStareConexiune.cpp)

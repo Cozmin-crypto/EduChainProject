@@ -28,17 +28,6 @@ bool parseazaPort(std::string_view text, std::uint16_t& port) {
     return true;
 }
 
-bool solicitaReincercareConectare() {
-    QMessageBox mesaj;
-    mesaj.setIcon(QMessageBox::Critical);
-    mesaj.setWindowTitle("EduChain");
-    mesaj.setText(QString::fromUtf8(u8"Nu s-a putut realiza conexiunea la server."));
-    auto* retryButton = mesaj.addButton("Retry", QMessageBox::AcceptRole);
-    mesaj.addButton("Exit", QMessageBox::RejectRole);
-    mesaj.setDefaultButton(retryButton);
-    mesaj.exec();
-    return mesaj.clickedButton() == retryButton;
-}
 }
 
 int main(int argc, char* argv[]) {
@@ -63,17 +52,10 @@ int main(int argc, char* argv[]) {
     }
 
     auto context = std::make_shared<ApplicationContext>(host, port);
-    bool continua = true;
-    while (continua && !context->esteConectat()) {
-        try {
-            context->conecteaza();
-        } catch (...) {
-            continua = solicitaReincercareConectare();
-        }
-    }
-    if (!continua) {
+    try {
+        context->conecteaza();
+    } catch (...) {
         context->deconecteaza();
-        return 1;
     }
 
     LoginWindow loginWindow(context);

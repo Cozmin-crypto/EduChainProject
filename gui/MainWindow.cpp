@@ -19,7 +19,7 @@ MainWindow::MainWindow(std::shared_ptr<ApplicationContext> context, QWidget* par
       context_(std::move(context)) {
     ui_->setupUi(this);
     ui_->userLabel->setText(QString::fromUtf8("Utilizator: %1")
-                                .arg(QString::fromStdString(context_->email())));
+                                .arg(QString::fromStdString(context_->numeComplet())));
     ui_->roleLabel->setText(QString::fromUtf8("Rol: %1")
                                 .arg(QString::fromStdString(context_->rol())));
     ui_->connectionLabel->setText(
@@ -30,12 +30,27 @@ MainWindow::MainWindow(std::shared_ptr<ApplicationContext> context, QWidget* par
     connect(ui_->logoutButton, &QPushButton::clicked, this, &MainWindow::logout);
     connect(ui_->closeButton, &QPushButton::clicked,
             this, &MainWindow::inchideAplicatia);
+    auto* monitorConexiune = new QTimer(this);
+    connect(monitorConexiune, &QTimer::timeout, this, [this] {
+        const bool conectat = context_->esteConectat();
+        ui_->connectionLabel->setText(
+            conectat
+                ? QString::fromUtf8("Conectat la %1:%2")
+                      .arg(QString::fromStdString(context_->host())).arg(context_->port())
+                : QString::fromUtf8(u8"Conexiune pierdutÄƒ."));
+        if (!conectat && ui_->dashboardStack->currentWidget()) {
+            ui_->dashboardStack->currentWidget()->setEnabled(false);
+        }
+    });
+    monitorConexiune->start(250);
     configureazaDashboard();
 }
 
 MainWindow::~MainWindow() = default;
 
 void MainWindow::logout() {
+    if (auto* dashboard = ui_->dashboardStack->findChild<StudentDashboard*>();
+        dashboard && !dashboard->confirmaParasireaEvaluarii()) return;
     ui_->logoutButton->setEnabled(false);
     context_->deconecteaza();
     if (!reconecteazaCuDialog()) {
@@ -106,6 +121,13 @@ void MainWindow::trateazaRolNecunoscut() {
 }
 
 void MainWindow::closeEvent(QCloseEvent* event) {
+    if (!inchiderePentruSchimbareFereastra_) {
+        if (auto* dashboard = ui_->dashboardStack->findChild<StudentDashboard*>();
+            dashboard && !dashboard->confirmaParasireaEvaluarii()) {
+            event->ignore();
+            return;
+        }
+    }
     if (!inchiderePentruSchimbareFereastra_) {
         context_->deconecteaza();
         QApplication::quit();

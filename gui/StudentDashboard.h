@@ -16,6 +16,7 @@ public:
     explicit StudentDashboard(std::shared_ptr<ApplicationContext> context,
                               QWidget* parent = nullptr);
     ~StudentDashboard() override;
+    bool confirmaParasireaEvaluarii();
 private slots:
     void incarcaCursurileMele();
     void incarcaCursurileDisponibile();
@@ -41,6 +42,11 @@ private:
     bool incercareEvaluareFinalizata_{};
     bool finalizareEvaluareInCurs_{};
     std::unordered_set<int> evaluariSustinute_;
+    int indexCursEvaluareAnterior_{-1};
+    bool restaureazaSelectiaCursului_{};
+    int randEvaluareAnterior_{-1};
+    int paginaAnterioara_{};
+    bool restaureazaNavigarea_{};
 
     bool poateExecutaCereri(class QLabel* statusLabel);
     void actualizeazaStareConexiune();
@@ -49,4 +55,8 @@ private:
     void golesteEvaluarea();
     void actualizeazaControaleleEvaluarii(bool cerereInCurs = false);
     void incarcaEvaluarileCursuluiCuSelectie(int evaluarePreferata);
+    void trateazaSchimbareaCursuluiEvaluarii(int indexNou);
+    bool finalizeazaEvaluareaPentruSchimbareaCursului();
+    void trateazaSchimbareaEvaluarii(int randNou);
+    void trateazaSchimbareaPaginii(int paginaNoua);
 };

@@ -45,6 +45,7 @@ enum class TipCerereEdu : std::uint16_t {
     ListeazaCursuriDisponibile = 35,
     ListeazaRezultateleMele = 36,
     ListeazaRezultateleEvaluarii = 37,
+    ListeazaStudentiEligibili = 38,
     InregistrareStudent = Inregistrare
 };
 
@@ -252,3 +253,4 @@ public:
     static std::string codificaStudent(const StudentPublicEdu& student);
     static StudentPublicEdu decodificaStudent(const std::string& date);
 };
+  

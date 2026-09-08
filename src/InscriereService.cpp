@@ -23,5 +23,6 @@ void InscriereService::retrageStudent(int a,int s,int c){verificaAdministrare(a,
 std::vector<CursInregistrare> InscriereService::listeazaCursuriInscrise(int a){reguli.verificaStudent(a);return inscrieri.listeazaCursuriStudent(a);}
 std::vector<CursInregistrare> InscriereService::listeazaCursuriDisponibile(int a){reguli.verificaStudent(a);return inscrieri.listeazaCursuriDisponibile(a);}
 std::vector<UtilizatorInregistrare> InscriereService::listeazaStudentiCurs(int a,int c){const auto curs=cursuri.cautaDupaId(c);if(!curs)throw ExceptieEdu("Cursul specificat nu exista.");reguli.verificaProfesorProprietar(a,*curs);return inscrieri.listeazaStudentiCurs(c);}
+std::vector<UtilizatorInregistrare> InscriereService::listeazaStudentiEligibili(int a,int c){const auto curs=cursuri.cautaDupaId(c);if(!curs)throw ExceptieEdu("Cursul specificat nu exista.");reguli.verificaProfesorProprietar(a,*curs);return inscrieri.listeazaStudentiEligibili(c);}
 bool InscriereService::verificaInscriere(int a,int s,int c){verificaAdministrare(a,s,c);return inscrieri.esteInscris(s,c);}
 void InscriereService::verificaAccesStudentLaCurs(int a,int c){const auto actor=reguli.obtineActor(a);if(actor.rol=="student"&&!inscrieri.esteInscris(a,c))throw ExceptieEdu("Studentul nu este inscris la curs.");}

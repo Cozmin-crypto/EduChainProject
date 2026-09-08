@@ -5,10 +5,12 @@
 #include "ui_StudentDashboard.h"
 
 #include <QComboBox>
+#include <QButtonGroup>
 #include <QDesktopServices>
 #include <QLabel>
 #include <QListWidget>
 #include <QListWidgetItem>
+#include <QMessageBox>
 #include <QPushButton>
 #include <QSignalBlocker>
 #include <QStackedWidget>
@@ -37,113 +39,270 @@ QString descrieCurs(const CursPublicEdu& curs) {
 }
 }
 
-StudentDashboard::StudentDashboard(std::shared_ptr<ApplicationContext> context,
-                                   QWidget* parent)
-    : QWidget(parent), ui_(std::make_unique<Ui::StudentDashboard>()),
-      context_(std::move(context)) {
+StudentDashboard::StudentDashboard(std::shared_ptr<ApplicationContext> context, QWidget* parent)
+    : QWidget(parent), ui_(std::make_unique<Ui::StudentDashboard>()), context_(std::move(context)) {
+    
+    
     ui_->setupUi(this);
-    ui_->userLabel->setText(QString::fromUtf8("Utilizator: %1")
-                                .arg(QString::fromStdString(context_->email())));
-    ui_->roleLabel->setText(QString::fromUtf8("Rol: %1")
-                                .arg(QString::fromStdString(context_->rol())));
-    ui_->connectionLabel->setText(
-        context_->esteConectat()
-            ? QString::fromUtf8("Conectat la %1:%2")
-                  .arg(QString::fromStdString(context_->host())).arg(context_->port())
+    auto* navigatie = new QButtonGroup(this);
+    navigatie->setExclusive(true);
+    for (QPushButton* buton : {ui_->homeButton, ui_->myCoursesButton,
+                               ui_->availableCoursesButton, ui_->lessonsButton,
+                               ui_->evaluationsButton, ui_->resultsButton}) {
+        buton->setCheckable(true);
+        navigatie->addButton(buton);
+    }
+    ui_->homeButton->setChecked(true);
+    
+    ui_->userLabel->setText(QString::fromUtf8("Utilizator: %1").arg(QString::fromStdString(context_->numeComplet())));
+    //afiseaza email ul din sesiunea salvata in context
+
+
+    ui_->roleLabel->setText(QString::fromUtf8("Rol: %1").arg(QString::fromStdString(context_->rol())));
+    //afiseaza rol ul din sesiunea salvata in context 
+
+
+    ui_->connectionLabel->setText(context_->esteConectat()
+            ? QString::fromUtf8("Conectat la %1:%2").arg(QString::fromStdString(context_->host())).arg(context_->port())
             : QString::fromUtf8(u8"Conexiune pierdută"));
-    connect(ui_->homeButton, &QPushButton::clicked, ui_->pagesStack,
-            [this] { ui_->pagesStack->setCurrentIndex(0); });
-    connect(ui_->myCoursesButton, &QPushButton::clicked, ui_->pagesStack,
-            [this] { ui_->pagesStack->setCurrentIndex(1); incarcaCursurileMele(); });
-    connect(ui_->availableCoursesButton, &QPushButton::clicked, ui_->pagesStack,
-            [this] { ui_->pagesStack->setCurrentIndex(2); incarcaCursurileDisponibile(); });
-    connect(ui_->lessonsButton, &QPushButton::clicked, ui_->pagesStack,
-            [this] {
-                ui_->pagesStack->setCurrentIndex(3);
-                incarcaCursurilePentruLectii();
-            });
-    connect(ui_->evaluationsButton, &QPushButton::clicked, ui_->pagesStack,
-            [this] {
-                ui_->pagesStack->setCurrentIndex(4);
-                incarcaCursurilePentruEvaluari();
-            });
-    connect(ui_->resultsButton, &QPushButton::clicked, ui_->pagesStack,
-            [this] { ui_->pagesStack->setCurrentIndex(5); incarcaRezultateleMele(); });
-    connect(ui_->refreshMyCoursesButton, &QPushButton::clicked,
-            this, &StudentDashboard::incarcaCursurileMele);
-    connect(ui_->refreshAvailableCoursesButton, &QPushButton::clicked,
-            this, &StudentDashboard::incarcaCursurileDisponibile);
-    connect(ui_->enrollButton, &QPushButton::clicked,
-            this, &StudentDashboard::inscrieLaCurs);
-    connect(ui_->availableCoursesList, &QListWidget::currentItemChanged,
-            this, &StudentDashboard::actualizeazaSelectiaCursului);
-    connect(ui_->refreshLessonCoursesButton, &QPushButton::clicked,
-            this, &StudentDashboard::incarcaCursurilePentruLectii);
-    connect(ui_->refreshLessonsButton, &QPushButton::clicked,
-            this, &StudentDashboard::incarcaLectiileCursului);
-    connect(ui_->lessonCourseCombo,
-            qOverload<int>(&QComboBox::currentIndexChanged), this,
+
+
+
+    connect(ui_->homeButton, &QPushButton::clicked, ui_->pagesStack, [this] { ui_->pagesStack->setCurrentIndex(0); });
+    //Pagina de home a studentului, cu indexul 0 in stack ul de pagini din functia 
+    //QstackedWidget::setCurrentIndex(int index)
+    
+    
+    connect(ui_->myCoursesButton, &QPushButton::clicked, ui_->pagesStack, [this] { ui_->pagesStack->setCurrentIndex(1); 
+        incarcaCursurileMele(); });
+    //pagina cu cursurile studentului, cu indexul 1 in stack ul de pagini din functia
+    //QstackedWidget::setCurrentIndex(int index)
+    
+    
+    connect(ui_->availableCoursesButton, &QPushButton::clicked, ui_->pagesStack, [this] 
+            { ui_->pagesStack->setCurrentIndex(2); incarcaCursurileDisponibile(); });
+    //pagina cu cursurile disponibile pentru student, cu indexul 2 in stack ul de pagini din functia 
+    //Qstackedwidget ::setCurrentIndex(int index) 
+    
+    
+    connect(ui_->lessonsButton, &QPushButton::clicked, ui_->pagesStack, [this] 
+            { ui_->pagesStack->setCurrentIndex(3); incarcaCursurilePentruLectii(); });
+    //pagina cu lectiile cursurilor studentului, cu indexul 3 in stack ul de pagini din functia
+    //Qstackedwidget::setCurrentIndex(int index) 
+
+    connect(ui_->evaluationsButton, &QPushButton::clicked, ui_->pagesStack, [this] 
+            { ui_->pagesStack->setCurrentIndex(4); incarcaCursurilePentruEvaluari(); });
+    //pagina cu evaluarile cursurilor studentului, cu indexul 4 in stackul de pagini din functia 
+    //QstackWidget::setCurrentIndex(int index)
+
+
+    connect(ui_->resultsButton, &QPushButton::clicked, ui_->pagesStack, [this] 
+            { ui_->pagesStack->setCurrentIndex(5); incarcaRezultateleMele(); });
+    //pagina cu rezultatele evaluarilor studentului, cu indexul 5 in stack ul de pagini din functia
+    //QstackWidget::setCurrentIndex(int index)
+
+
+
+    connect(ui_->refreshMyCoursesButton, &QPushButton::clicked, this, &StudentDashboard::incarcaCursurileMele);
+    //butonul de reimprospataare a cursurilor, care apeleaza functia incarcaCursurileMele()
+    //pentru a reincarca cursurile studentului din server ( se da un refresh la lista de cursuri ale studentului)
+    
+    
+    connect(ui_->refreshAvailableCoursesButton, &QPushButton::clicked, this, &StudentDashboard::incarcaCursurileDisponibile);
+    //butonul de refresh pentru cursurile disponibile, care apeleaza functia incarcaCursurileDisponibile()
+    //pentru a reincarca cursurile disponibile pentru student din server
+    
+    
+    connect(ui_->enrollButton, &QPushButton::clicked,this, &StudentDashboard::inscrieLaCurs);
+    //butonul de inscriere la curs, care apeleaza functia inscrieLaCurs() 
+    //pentru a trimite cererea de inscriere la curs catre server 
+    
+    
+    connect(ui_->availableCoursesList, &QListWidget::currentItemChanged, this, &StudentDashboard::actualizeazaSelectiaCursului);
+    //cand se selecteaza un curs din lista de cursuri disponibile, se apeleaza functia actualizeazaSelectiaCursului()
+    //pentru a activa butonul de inscriere la curs si a afisa detaliile cursului selectat
+    
+    
+    connect(ui_->refreshLessonCoursesButton, &QPushButton::clicked, this, &StudentDashboard::incarcaCursurilePentruLectii);
+    //butonul de refresh pentru lista cursurilor disponibile in sectiunea Lectii
+    //reincarcam din server cursurile la care studentul este inscris 
+    
+
+    connect(ui_->refreshLessonsButton, &QPushButton::clicked, this, &StudentDashboard::incarcaLectiileCursului);
+    //butonul de refresh pentru lectiile unui curs deja selectat
+    //incarcam din server lectiile cursului selectat in combo box 
+
+
+    connect(ui_->lessonCourseCombo, qOverload<int>(&QComboBox::currentIndexChanged), this,
             [this](int) { incarcaLectiileCursului(); });
-    connect(ui_->lessonsList, &QListWidget::currentItemChanged,
-            this, &StudentDashboard::afiseazaLectiaSelectata);
-    connect(ui_->openVideoButton, &QPushButton::clicked,
-            this, &StudentDashboard::deschideVideo);
-    connect(ui_->refreshEvaluationCoursesButton, &QPushButton::clicked,
-            this, &StudentDashboard::incarcaCursurilePentruEvaluari);
-    connect(ui_->refreshEvaluationsButton, &QPushButton::clicked,
-            this, &StudentDashboard::incarcaEvaluarileCursului);
-    connect(ui_->evaluationCourseCombo,
-            qOverload<int>(&QComboBox::currentIndexChanged), this,
-            [this](int) {
-                golesteEvaluarea();
-                incarcaEvaluarileCursului();
-            });
-    connect(ui_->evaluationsList, &QListWidget::currentItemChanged,
-            this, &StudentDashboard::afiseazaEvaluareaSelectata);
-    connect(ui_->startEvaluationButton, &QPushButton::clicked,
-            this, &StudentDashboard::pornesteEvaluarea);
-    connect(ui_->finalizeEvaluationButton, &QPushButton::clicked,
-            this, &StudentDashboard::finalizeazaEvaluarea);
-    connect(ui_->refreshResultsButton, &QPushButton::clicked,
-            this, &StudentDashboard::incarcaRezultateleMele);
+    //de fiecare data cand studentul schimba cursul selectat in combo box,
+    //apelam automat incarcaLectiileCursului()
+    //pentru a afisa lectiile cursului nou selectat
+
+    //qOverload<int> ne spune ca vrem sa folosim semnalul combo box ului sub forma de int (index ul)
+
+
+    connect(ui_->lessonsList, &QListWidget::currentItemChanged, this, &StudentDashboard::afiseazaLectiaSelectata);
+    //cand studentul selecteaza o lectie din lista, afisam in interfata detaliile lectiei selectate 
+
+
+    connect(ui_->openVideoButton, &QPushButton::clicked, this, &StudentDashboard::deschideVideo);   //trebuie modificata
+    //ar trebui ca atunci cand studentul apasa "Deschide Video"
+    //sa se valideze link ul si sa il deschidem in browserul implicit folosind
+    // QDEsktopServices::openUrl(QUrl(linkVideo))       !!!!!!!
+
+
+    connect(ui_->refreshEvaluationCoursesButton, &QPushButton::clicked, this, &StudentDashboard::incarcaCursurilePentruEvaluari);
+    //butonul de refresh pentru cursurile din sectiunea Evaluari
+    //reincarcam cursurile studentului si actualizarile despre evaluarile deja sustinute 
+
+    connect(ui_->refreshEvaluationsButton, &QPushButton::clicked, this, &StudentDashboard::incarcaEvaluarileCursului);
+    //butonul de refresh pentru evaluarile unui curs deja selectat
+    //cerem din server lista actualizata de evaluari pentru cursul selectat in combo box 
+    
+    
+    connect(ui_->evaluationCourseCombo, qOverload<int>(&QComboBox::currentIndexChanged), this,
+            [this](int index) { trateazaSchimbareaCursuluiEvaluarii(index); });
+    //cand studentul schimba cursul din sectiunea Evaluari
+    //stergem datele evaluarii afisate anterior
+    //apoi incarca, evaluarile cursului nou selectat
+
+    //vream sa nu ramana pe ecran o evaluare care apartine cursului vechi
+    
+    
+    connect(ui_->evaluationsList, &QListWidget::currentRowChanged, this,
+            &StudentDashboard::trateazaSchimbareaEvaluarii);
+    //cand studentul selecteaza o evaluare incarcam detaliile si intrebarile acesteia si le afisam in tabelul de evaluare
+
+
+    connect(ui_->startEvaluationButton, &QPushButton::clicked, this, &StudentDashboard::pornesteEvaluarea);
+    //cand studentul apasa butonul de start pentru evaluare cerem serverului sa creeze o incercare pentru evaluare selectata
+    //daca serverul permite, primi id-ul incercarii si activam raspunsurile
+
+
+    connect(ui_->finalizeEvaluationButton, &QPushButton::clicked, this, &StudentDashboard::finalizeazaEvaluarea);
+    //cand stundetul apasa butonul de Finalizeaza
+    //colectam toate raspunsurile introduse
+    //le trimitem serverului
+    //apoi cerem finalizarea incercarii si afisam scorul si nota
+
+
+    connect(ui_->refreshResultsButton, &QPushButton::clicked, this, &StudentDashboard::incarcaRezultateleMele);
+    //butonul de refresh pentru rezultatele studentului
+    //cerem din server lista actualizata a rezultatelor studentului 
+    
+    
+    
+    
+    connect(ui_->pagesStack, &QStackedWidget::currentChanged, this,
+            &StudentDashboard::trateazaSchimbareaPaginii);
+    paginaAnterioara_ = ui_->pagesStack->currentIndex();
     ui_->enrollButton->setEnabled(false);
+    //in prima faza butonul de inscriere la curs este dezactiva, pana cand
+    //este selectat un curs valid din lista 
+
+
     ui_->questionsTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    //coloana 0 dini tabelul intrebarilor isi ajusteaza latimea 
+    //in functie de continut
+
+
     ui_->questionsTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+    //coloana 1, care contine enuntul, se intinde pentru a ocupa spatiul disponibil in tabel
+    //astfel incat sa nu ramana spatii goale in tabel
+
+
     ui_->questionsTable->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+    //coloana 2, care contine punctajul, isi ajusteaza latimea in functie de continut
+
+
     ui_->questionsTable->horizontalHeader()->setSectionResizeMode(3, QHeaderView::Stretch);
+    //coloana 3, care contine raspunsul studentului, se intinde pentru a ocupa spatiul disponibil in tabel
+
+
     ui_->resultsTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    //coloanele tabelului cu rezultate ocupa uniform
+    //latimea disponibila a tabelului, astfel incat sa nu ramana spatii goale
+
+
+
     golesteDetaliileLectiei();
+    //pentru cazuri de eroare, golim detaliile lectiei si dezactivam butoanele de refresh si deschidere video
+    //1. nu suntem asignati unui curs
+    //2. nu avem minim 1 lectie la cursul selectat
+    //3.selectia lectiei este invalida
+    //4. dashboard ul abia a fost construit si inca nu s au incarcat lectiile
+
+
+
     actualizeazaControaleleLectiilor();
+    //actualizam starea butoanelor si listelor din sectiunea lectii
+    //in functie de conexiune, autentificare si selectia curenta
+    
+    
     golesteEvaluarea();
+    //pentru cazuri de eroare, golim detaliile evaluarii si dezactivam butoanele de refresh si start/finalizare
+    //1. nu suntem asignati unui curs   
+    //2. nu avem minim 1 evaluare la cursul selectat
+    //3. selectia evaluarii este invalida
+    //4. dashboard ul abia a fost construit si inca nu s au incarcat evaluarile
+
+
     actualizeazaControaleleEvaluarii();
+    //actualizam starea tuturor controalelor din sectiunea Evaluari
+    //activam sau dezactivam butoanele in functie de conexiune
+    //evaluarea selectata, incercarea activa si daca evaluarea a fost deja sustinuta de student
 }
 
 StudentDashboard::~StudentDashboard() = default;
 
-bool StudentDashboard::poateExecutaCereri(QLabel* statusLabel) {
+bool StudentDashboard::poateExecutaCereri(QLabel* statusLabel) //ca sa stie in ce label din interfata trebuie sa afiseze eventualul mesaj de eroare
+{
     if (!context_->esteAutentificat()) {
         statusLabel->setText(QString::fromUtf8(u8"Sesiunea nu este autentificată."));
         return false;
     }
+    //verificam daca in ApplicationContext exista o autentificare deschisa
+    //daca nu afisam mesaj de eroare 
+
     if (context_->rol() != "student") {
         statusLabel->setText(QString::fromUtf8(u8"Operația este permisă numai Studentului."));
         return false;
     }
+    //verificam daca in ApplicationContext rolul este student
+    //daca nu afisam mesaj de eroare
+
+
     if (!context_->esteConectat()) {
         statusLabel->setText(QString::fromUtf8(u8"Conexiune pierdută."));
         actualizeazaStareConexiune();
         ui_->enrollButton->setEnabled(false);
         return false;
     }
+    //verificam daca in ApplicationContext exista o conexiune activa
+    //daca nu afisam mesaj de eroare si dezactivam butonul de inscriere la curs
+
+    //daca nu exista coneciune cu serverul, oricum nu ai cum sa trimiti cerere de inscriere
+
+
     return true;
+    //daca toate verificaril sunt indeplinite, permite executarea cererii catre server
 }
 
-void StudentDashboard::actualizeazaStareConexiune() {
-    ui_->connectionLabel->setText(
-        context_->esteConectat()
-            ? QString::fromUtf8("Conectat la %1:%2")
-                  .arg(QString::fromStdString(context_->host())).arg(context_->port())
+void StudentDashboard::actualizeazaStareConexiune() 
+{
+    if (!context_->esteConectat()) {
+        for (auto* control : findChildren<QPushButton*>()) control->setEnabled(false);
+        for (auto* control : findChildren<QComboBox*>()) control->setEnabled(false);
+        for (auto* control : findChildren<QListWidget*>()) control->setEnabled(false);
+        for (auto* control : findChildren<QTableWidget*>()) control->setEnabled(false);
+        for (auto* control : findChildren<QLineEdit*>()) control->setEnabled(false);
+    }
+    ui_->connectionLabel->setText( context_->esteConectat()
+            ? QString::fromUtf8("Conectat la %1:%2").arg(QString::fromStdString(context_->host())).arg(context_->port())
             : QString::fromUtf8(u8"Conexiune pierdută"));
+    //daca in ApplicationContext exista o conexiune activa, afisam mesajul de conectare cu host si port
+    //altfel mesajul de eroare
 }
 
 void StudentDashboard::incarcaCursurileMele() {
@@ -202,8 +361,9 @@ void StudentDashboard::incarcaCursurileDisponibile() {
 void StudentDashboard::actualizeazaSelectiaCursului() {
     const auto* element = ui_->availableCoursesList->currentItem();
     const bool selectieValida = element && element->data(Qt::UserRole).toInt() > 0;
-    ui_->enrollButton->setEnabled(selectieValida && context_->esteConectat() &&
-                                  context_->esteAutentificat() && context_->rol() == "student");
+    ui_->enrollButton->setEnabled(selectieValida && context_->esteConectat() && context_->esteAutentificat() && context_->rol() == "student");
+    //daca avem un curs selectat, si suntem conectati, autentificati si avem rolul de student, 
+    //atunci butonul de inscriere la curs este activat, altfel este dezactivat 
 }
 
 void StudentDashboard::inscrieLaCurs() {
@@ -457,7 +617,7 @@ void StudentDashboard::actualizeazaControaleleEvaluarii(bool cerereInCurs) {
 
     ui_->refreshEvaluationCoursesButton->setEnabled(disponibil && !incercareActiva);
     ui_->evaluationCourseCombo->setEnabled(
-        disponibil && !incercareActiva && ui_->evaluationCourseCombo->count() > 0);
+        disponibil && ui_->evaluationCourseCombo->count() > 0);
     ui_->refreshEvaluationsButton->setEnabled(disponibil && cursValid && !incercareActiva);
     ui_->evaluationsList->setEnabled(
         disponibil && cursValid && !incercareActiva && ui_->evaluationsList->count() > 0);
@@ -504,6 +664,7 @@ void StudentDashboard::incarcaCursurilePentruEvaluari() {
         }
         if (!cursuri.empty()) {
             ui_->evaluationCourseCombo->setCurrentIndex(indexSelectat >= 0 ? indexSelectat : 0);
+            indexCursEvaluareAnterior_ = ui_->evaluationCourseCombo->currentIndex();
         }
         blocare.unblock();
 
@@ -534,6 +695,109 @@ void StudentDashboard::incarcaCursurilePentruEvaluari() {
         golesteEvaluarea();
         actualizeazaControaleleEvaluarii();
     }
+}
+
+void StudentDashboard::trateazaSchimbareaCursuluiEvaluarii(int indexNou) {
+    if (restaureazaSelectiaCursului_) return;
+    const bool incercareActiva = incercareEvaluareId_ > 0 && !incercareEvaluareFinalizata_;
+    if (!incercareActiva) {
+        indexCursEvaluareAnterior_ = indexNou;
+        golesteEvaluarea();
+        incarcaEvaluarileCursului();
+        return;
+    }
+
+    QMessageBox mesaj(this);
+    mesaj.setIcon(QMessageBox::Warning);
+    mesaj.setWindowTitle(QString::fromUtf8(u8"Evaluare în desfășurare"));
+    mesaj.setText(QString::fromUtf8(u8"Ai o evaluare în desfășurare. Dacă părăsești această evaluare, aceasta va fi finalizată automat cu răspunsurile completate până în acest moment. Întrebările fără răspuns vor primi 0 puncte și nu vei mai putea susține evaluarea din nou. Dorești să continui?"));
+    auto* ramane = mesaj.addButton(QString::fromUtf8(u8"Rămân la evaluare"), QMessageBox::RejectRole);
+    auto* finalizeaza = mesaj.addButton(QString::fromUtf8(u8"Finalizează și schimbă cursul"), QMessageBox::AcceptRole);
+    mesaj.setDefaultButton(qobject_cast<QPushButton*>(ramane));
+    mesaj.exec();
+    if (mesaj.clickedButton() != finalizeaza || !finalizeazaEvaluareaPentruSchimbareaCursului()) {
+        restaureazaSelectiaCursului_ = true;
+        ui_->evaluationCourseCombo->setCurrentIndex(indexCursEvaluareAnterior_);
+        restaureazaSelectiaCursului_ = false;
+        return;
+    }
+    indexCursEvaluareAnterior_ = indexNou;
+    golesteEvaluarea();
+    incarcaEvaluarileCursului();
+}
+
+bool StudentDashboard::finalizeazaEvaluareaPentruSchimbareaCursului() {
+    if (finalizareEvaluareInCurs_ || incercareEvaluareId_ <= 0) return false;
+    finalizareEvaluareInCurs_ = true;
+    actualizeazaControaleleEvaluarii();
+    try {
+        for (int rand = 0; rand < ui_->questionsTable->rowCount(); ++rand) {
+            const auto* itemId = ui_->questionsTable->item(rand, 0);
+            const auto* editor = qobject_cast<QLineEdit*>(ui_->questionsTable->cellWidget(rand, 3));
+            const QString continut = editor ? editor->text().trimmed() : QString();
+            const int intrebareId = itemId ? itemId->data(Qt::UserRole).toInt() : 0;
+            if (intrebareId > 0 && !continut.isEmpty()) {
+                context_->client().salveazaRaspuns(
+                    incercareEvaluareId_, intrebareId, continut.toUtf8().toStdString());
+            }
+        }
+        const auto rezultat = context_->client().finalizeazaIncercare(incercareEvaluareId_);
+        incercareEvaluareFinalizata_ = true;
+        evaluariSustinute_.insert(rezultat.evaluareId);
+        finalizareEvaluareInCurs_ = false;
+        return true;
+    } catch (const ExceptieEdu& eroare) {
+        ui_->evaluationActionStatusLabel->setText(
+            context_->esteConectat() ? QString::fromUtf8(eroare.what())
+                                     : QString::fromUtf8(u8"Conexiune pierdută."));
+        actualizeazaStareConexiune();
+    } catch (const std::exception&) {
+        ui_->evaluationActionStatusLabel->setText(
+            QString::fromUtf8(u8"Evaluarea nu a putut fi finalizată."));
+    }
+    finalizareEvaluareInCurs_ = false;
+    actualizeazaControaleleEvaluarii();
+    return false;
+}
+
+bool StudentDashboard::confirmaParasireaEvaluarii() {
+    if (incercareEvaluareId_ <= 0 || incercareEvaluareFinalizata_) return true;
+    QMessageBox mesaj(this);
+    mesaj.setIcon(QMessageBox::Warning);
+    mesaj.setWindowTitle(QString::fromUtf8(u8"Evaluare Ã®n desfÄƒÈ™urare"));
+    mesaj.setText(QString::fromUtf8(u8"DacÄƒ pÄƒrÄƒseÈ™ti evaluarea, aceasta va fi finalizatÄƒ automat pe baza rÄƒspunsurilor salvate pÃ¢nÄƒ acum. Nu o vei mai putea susÈ›ine din nou."));
+    auto* ramane = mesaj.addButton(QString::fromUtf8(u8"RÄƒmÃ¢n la evaluare"), QMessageBox::RejectRole);
+    auto* paraseste = mesaj.addButton(QString::fromUtf8(u8"PÄƒrÄƒsesc È™i finalizez"), QMessageBox::AcceptRole);
+    mesaj.setDefaultButton(qobject_cast<QPushButton*>(ramane));
+    mesaj.exec();
+    return mesaj.clickedButton() == paraseste &&
+           finalizeazaEvaluareaPentruSchimbareaCursului();
+}
+
+void StudentDashboard::trateazaSchimbareaEvaluarii(int randNou) {
+    if (restaureazaNavigarea_) return;
+    if (randEvaluareAnterior_ >= 0 && randNou != randEvaluareAnterior_ &&
+        !confirmaParasireaEvaluarii()) {
+        restaureazaNavigarea_ = true;
+        ui_->evaluationsList->setCurrentRow(randEvaluareAnterior_);
+        restaureazaNavigarea_ = false;
+        return;
+    }
+    randEvaluareAnterior_ = randNou;
+    afiseazaEvaluareaSelectata();
+}
+
+void StudentDashboard::trateazaSchimbareaPaginii(int paginaNoua) {
+    if (restaureazaNavigarea_) return;
+    if (paginaAnterioara_ == 4 && paginaNoua != 4 &&
+        !confirmaParasireaEvaluarii()) {
+        restaureazaNavigarea_ = true;
+        ui_->pagesStack->setCurrentIndex(paginaAnterioara_);
+        ui_->evaluationsButton->setChecked(true);
+        restaureazaNavigarea_ = false;
+        return;
+    }
+    paginaAnterioara_ = paginaNoua;
 }
 
 void StudentDashboard::incarcaEvaluarileCursului() {
@@ -578,6 +842,9 @@ void StudentDashboard::incarcaEvaluarileCursuluiCuSelectie(int evaluarePreferata
                 QString::fromUtf8("%1 — %2")
                     .arg(QString::fromStdString(evaluare.nume), tip),
                 ui_->evaluationsList);
+            if (evaluariSustinute_.count(evaluare.id) > 0) {
+                element->setText(element->text() + QString::fromUtf8(u8" — Susținută"));
+            }
             element->setData(Qt::UserRole, evaluare.id);
             if (evaluare.id == evaluarePreferata) randSelectat = ui_->evaluationsList->count() - 1;
         }
@@ -591,6 +858,7 @@ void StudentDashboard::incarcaEvaluarileCursuluiCuSelectie(int evaluarePreferata
             actualizeazaControaleleEvaluarii();
             const QSignalBlocker blocareSelectie(ui_->evaluationsList);
             ui_->evaluationsList->setCurrentRow(randSelectat >= 0 ? randSelectat : 0);
+            randEvaluareAnterior_ = ui_->evaluationsList->currentRow();
             ui_->evaluationsStatusLabel->clear();
             afiseazaEvaluareaSelectata();
         }

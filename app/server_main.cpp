@@ -87,6 +87,7 @@ int main(int argc, char* argv[]) {
     try {
         ConectorBazaDate bazaDate;
         bazaDate.deschideConexiune(caleBazaDate);
+        bazaDate.creeazaBackup();
 
         UtilizatorRepository utilizatori(bazaDate);
         CursRepository cursuriRepository(bazaDate);
@@ -126,6 +127,7 @@ int main(int argc, char* argv[]) {
             serverActiv = nullptr;
         }
 
+        bazaDate.creeazaBackup();
         bazaDate.inchideConexiune();
         std::cout << "EduChainServer oprit controlat.\n";
     } catch (const ExceptieEdu& exceptie) {

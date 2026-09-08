@@ -58,16 +58,22 @@ ClientEdu& ApplicationContext::client() {
 
 void ApplicationContext::salveazaSesiune(int utilizatorId,
                                          std::string email,
-                                         std::string rol) {
+                                         std::string rol,
+                                         std::string nume,
+                                         std::string prenume) {
     utilizatorId_ = utilizatorId;
     email_ = std::move(email);
     rol_ = std::move(rol);
+    nume_ = std::move(nume);
+    prenume_ = std::move(prenume);
 }
 
 void ApplicationContext::reseteazaSesiune() noexcept {
     utilizatorId_.reset();
     email_.clear();
     rol_.clear();
+    nume_.clear();
+    prenume_.clear();
 }
 
 bool ApplicationContext::esteAutentificat() const noexcept {
@@ -79,3 +85,8 @@ std::uint16_t ApplicationContext::port() const noexcept { return port_; }
 std::optional<int> ApplicationContext::utilizatorId() const noexcept { return utilizatorId_; }
 const std::string& ApplicationContext::email() const noexcept { return email_; }
 const std::string& ApplicationContext::rol() const noexcept { return rol_; }
+const std::string& ApplicationContext::nume() const noexcept { return nume_; }
+const std::string& ApplicationContext::prenume() const noexcept { return prenume_; }
+std::string ApplicationContext::numeComplet() const {
+    return prenume_.empty() ? nume_ : (nume_.empty() ? prenume_ : prenume_ + " " + nume_);
+}

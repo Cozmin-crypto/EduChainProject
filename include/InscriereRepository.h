@@ -17,4 +17,5 @@ public:
     std::vector<CursInregistrare> listeazaCursuriStudent(int studentId);
     std::vector<CursInregistrare> listeazaCursuriDisponibile(int studentId);
     std::vector<UtilizatorInregistrare> listeazaStudentiCurs(int cursId);
+    std::vector<UtilizatorInregistrare> listeazaStudentiEligibili(int cursId);
 };

@@ -16,6 +16,7 @@ public:
     std::vector<CursInregistrare> listeazaCursuriInscrise(int actorId);
     std::vector<CursInregistrare> listeazaCursuriDisponibile(int actorId);
     std::vector<UtilizatorInregistrare> listeazaStudentiCurs(int actorId,int cursId);
+    std::vector<UtilizatorInregistrare> listeazaStudentiEligibili(int actorId,int cursId);
     bool verificaInscriere(int actorId,int studentId,int cursId);
     void verificaAccesStudentLaCurs(int actorId,int cursId);
 };

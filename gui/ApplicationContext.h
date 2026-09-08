@@ -23,7 +23,8 @@ public:
     bool esteConectat() const noexcept;
     ClientEdu& client();
 
-    void salveazaSesiune(int utilizatorId, std::string email, std::string rol);
+    void salveazaSesiune(int utilizatorId, std::string email, std::string rol,
+                         std::string nume, std::string prenume);
     void reseteazaSesiune() noexcept;
     bool esteAutentificat() const noexcept;
 
@@ -32,6 +33,9 @@ public:
     std::optional<int> utilizatorId() const noexcept;
     const std::string& email() const noexcept;
     const std::string& rol() const noexcept;
+    const std::string& nume() const noexcept;
+    const std::string& prenume() const noexcept;
+    std::string numeComplet() const;
 
 private:
     std::string host_;
@@ -40,4 +44,6 @@ private:
     std::optional<int> utilizatorId_;
     std::string email_;
     std::string rol_;
+    std::string nume_;
+    std::string prenume_;
 };

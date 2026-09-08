@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <iostream>
 #include <memory>
 
 #include <sqlite3.h>
@@ -29,9 +30,52 @@ std::string citesteSchema() {
 
     return {std::istreambuf_iterator<char>(fisier), std::istreambuf_iterator<char>()};
 }
+
+bool verificaIntegritateFisier(const std::string& cale) {
+    sqlite3* baza = nullptr;
+    if (sqlite3_open_v2(cale.c_str(), &baza, SQLITE_OPEN_READONLY, nullptr) != SQLITE_OK) {
+        if (baza != nullptr) sqlite3_close_v2(baza);
+        return false;
+    }
+    sqlite3_stmt* instructiune = nullptr;
+    bool valida = false;
+    if (sqlite3_prepare_v2(baza, "PRAGMA integrity_check;", -1, &instructiune, nullptr) ==
+        SQLITE_OK && sqlite3_step(instructiune) == SQLITE_ROW) {
+        const auto* text = sqlite3_column_text(instructiune, 0);
+        valida = text != nullptr && std::string(reinterpret_cast<const char*>(text)) == "ok";
+    }
+    if (instructiune != nullptr) sqlite3_finalize(instructiune);
+    sqlite3_close_v2(baza);
+    return valida;
+}
+
+void copiazaCuBackupApi(sqlite3* sursa, sqlite3* destinatie) {
+    sqlite3_backup* backup = sqlite3_backup_init(destinatie, "main", sursa, "main");
+    if (backup == nullptr) {
+        aruncaEroareSQLite(destinatie, sqlite3_errcode(destinatie),
+                          "Initializarea backup-ului SQLite a esuat");
+    }
+    const int pas = sqlite3_backup_step(backup, -1);
+    const int finalizare = sqlite3_backup_finish(backup);
+    if (pas != SQLITE_DONE || finalizare != SQLITE_OK) {
+        aruncaEroareSQLite(destinatie, finalizare != SQLITE_OK ? finalizare : pas,
+                          "Backup-ul SQLite a esuat");
+    }
+}
 }
 
 void ConectorBazaDate::aplicaMigrariCompatibilitate() {
+    executaInterogare(
+        "CREATE TABLE IF NOT EXISTS schema_version ("
+        "versiune INTEGER NOT NULL, aplicata_la TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);"
+        "INSERT INTO schema_version(versiune) SELECT 1 "
+        "WHERE NOT EXISTS (SELECT 1 FROM schema_version);");
+    executaInterogare(
+        "CREATE TRIGGER IF NOT EXISTS blocheaza_incercare_duplicata "
+        "BEFORE INSERT ON incercari_evaluare "
+        "WHEN EXISTS (SELECT 1 FROM incercari_evaluare WHERE evaluare_id = NEW.evaluare_id "
+        "AND student_id = NEW.student_id) BEGIN "
+        "SELECT RAISE(ABORT, 'EVALUARE_DEJA_SUSTINUTA'); END;");
     const auto coloaneUtilizatori = executaSelect("PRAGMA table_info(utilizatori);");
     const auto areColoana = [&](const std::string& numeColoana) {
         return std::any_of(
@@ -143,8 +187,8 @@ ConectorBazaDate::~ConectorBazaDate() noexcept {
     }
 }
 
-void ConectorBazaDate::deschideConexiune(const std::string& caleBazaDate) {
-    if (caleBazaDate.empty()) {
+void ConectorBazaDate::deschideConexiune(const std::string& caleSolicitata) {
+    if (caleSolicitata.empty()) {
         throw ExceptieEdu("Calea bazei de date nu poate fi goala.");
     }
 
@@ -152,15 +196,54 @@ void ConectorBazaDate::deschideConexiune(const std::string& caleBazaDate) {
         throw ExceptieEdu("Conexiunea la baza de date este deja deschisa.");
     }
 
+    this->caleBazaDate = std::filesystem::absolute(caleSolicitata).string();
+    const std::string caleBackup = this->caleBazaDate + ".backup";
+    std::cout << "[DB] Database path: " << this->caleBazaDate << '\n';
     std::error_code eroareSistem;
-    const bool bazaNoua = !std::filesystem::exists(caleBazaDate, eroareSistem);
+    bool bazaNoua = !std::filesystem::exists(this->caleBazaDate, eroareSistem);
     if (eroareSistem) {
         throw ExceptieEdu("Calea bazei de date nu poate fi verificata.");
     }
 
+    const bool activaValida = !bazaNoua && verificaIntegritateFisier(this->caleBazaDate);
+    std::cout << "[DB] Integrity check: " << (bazaNoua ? "MISSING" : activaValida ? "PASS" : "FAIL") << '\n';
+    const bool backupExistent = std::filesystem::exists(caleBackup, eroareSistem);
+    const bool backupValid = backupExistent && verificaIntegritateFisier(caleBackup);
+    std::cout << "[DB] Backup found: " << (backupExistent ? caleBackup : "NO") << '\n';
+    std::cout << "[DB] Backup integrity: " << (backupValid ? "PASS" : backupExistent ? "FAIL" : "N/A") << '\n';
+    const bool restaureaza = (!bazaNoua && !activaValida && backupValid) || (bazaNoua && backupValid);
+    std::cout << "[DB] Restore required: " << (restaureaza ? "YES" : "NO") << '\n';
+    if (!bazaNoua && !activaValida && !backupValid) {
+        throw ExceptieEdu("Baza de date activa este corupta si nu exista un backup valid.");
+    }
+    if (restaureaza) {
+        const std::string temporar = this->caleBazaDate + ".restore.tmp";
+        std::filesystem::remove(temporar, eroareSistem);
+        sqlite3* sursa = nullptr;
+        sqlite3* destinatie = nullptr;
+        if (sqlite3_open_v2(caleBackup.c_str(), &sursa, SQLITE_OPEN_READONLY, nullptr) != SQLITE_OK ||
+            sqlite3_open_v2(temporar.c_str(), &destinatie,
+                            SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) != SQLITE_OK) {
+            if (sursa != nullptr) sqlite3_close_v2(sursa);
+            if (destinatie != nullptr) sqlite3_close_v2(destinatie);
+            throw ExceptieEdu("Restaurarea backup-ului SQLite nu a putut fi initializata.");
+        }
+        copiazaCuBackupApi(sursa, destinatie);
+        sqlite3_close_v2(sursa);
+        sqlite3_close_v2(destinatie);
+        if (!bazaNoua) {
+            std::filesystem::rename(this->caleBazaDate, this->caleBazaDate + ".corrupt", eroareSistem);
+            if (eroareSistem) throw ExceptieEdu("Baza corupta nu a putut fi conservata.");
+        }
+        std::filesystem::rename(temporar, this->caleBazaDate, eroareSistem);
+        if (eroareSistem) throw ExceptieEdu("Backup-ul restaurat nu a putut deveni baza activa.");
+        bazaNoua = false;
+        std::cout << "[DB] Restore completed\n";
+    }
+
     sqlite3* conexiuneNoua = nullptr;
     const int rezultat = sqlite3_open_v2(
-        caleBazaDate.c_str(),
+        this->caleBazaDate.c_str(),
         &conexiuneNoua,
         SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE,
         nullptr);
@@ -176,11 +259,49 @@ void ConectorBazaDate::deschideConexiune(const std::string& caleBazaDate) {
         if (bazaNoua) {
             executaInterogare(citesteSchema());
         } else {
+            std::cout << "[DB] Applying migrations...\n";
             aplicaMigrariCompatibilitate();
         }
+        if (!executaSelect("PRAGMA foreign_key_check;").empty()) {
+            throw ExceptieEdu("Schema bazei de date contine relatii invalide.");
+        }
+        std::cout << "[DB] Schema validation: PASS\n";
     } catch (...) {
         sqlite3_close_v2(conexiune);
         conexiune = nullptr;
+        throw;
+    }
+}
+
+void ConectorBazaDate::creeazaBackup() {
+    if (!esteConectat() || caleBazaDate.empty()) {
+        throw ExceptieEdu("Backup-ul necesita o conexiune deschisa.");
+    }
+    const std::string caleBackup = caleBazaDate + ".backup";
+    const std::string temporar = caleBackup + ".tmp";
+    std::error_code eroareSistem;
+    std::filesystem::remove(temporar, eroareSistem);
+    sqlite3* destinatie = nullptr;
+    const int rezultat = sqlite3_open_v2(
+        temporar.c_str(), &destinatie, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr);
+    if (rezultat != SQLITE_OK) {
+        aruncaEroareSQLite(destinatie, rezultat, "Deschiderea backup-ului SQLite a esuat");
+    }
+    try {
+        copiazaCuBackupApi(conexiune, destinatie);
+        sqlite3_close_v2(destinatie);
+        destinatie = nullptr;
+        if (!verificaIntegritateFisier(temporar)) {
+            throw ExceptieEdu("Backup-ul SQLite nou nu a trecut verificarea de integritate.");
+        }
+        std::filesystem::remove(caleBackup, eroareSistem);
+        eroareSistem.clear();
+        std::filesystem::rename(temporar, caleBackup, eroareSistem);
+        if (eroareSistem) throw ExceptieEdu("Backup-ul SQLite nu a putut fi publicat atomic.");
+        std::cout << "[DB] Backup updated: PASS\n";
+    } catch (...) {
+        if (destinatie != nullptr) sqlite3_close_v2(destinatie);
+        std::filesystem::remove(temporar, eroareSistem);
         throw;
     }
 }

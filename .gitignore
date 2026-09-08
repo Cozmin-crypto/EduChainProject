@@ -19,6 +19,7 @@ build-qt/
 
 # Fișiere temporare
 *.log
+*.db.backup
 
 /build-qt/
 

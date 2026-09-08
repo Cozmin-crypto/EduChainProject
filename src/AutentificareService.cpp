@@ -189,7 +189,8 @@ RezultatAutentificare AutentificareService::autentifica(
                 email, std::nullopt, "Acces refuzat: rol nesuportat."};
     }
     return {true, StareAutentificare::Succes, utilizator->id,
-            utilizator->email, utilizator->rol, "Autentificare reusita."};
+            utilizator->email, utilizator->rol, "Autentificare reusita.",
+            utilizator->nume, utilizator->prenume};
 }
 
 int AutentificareService::inregistreaza(const std::string& n,const std::string& p,const std::string& e,const std::string& parola,const std::string& rol){

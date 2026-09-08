@@ -26,6 +26,8 @@ private slots:
 private:
     std::unique_ptr<Ui::LoginWindow> ui_;
     std::shared_ptr<ApplicationContext> context_;
+    bool autentificareInCurs_{};
+    bool reconectareInCurs_{};
 
     void actualizeazaStareConexiune();
 };

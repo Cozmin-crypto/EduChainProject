@@ -4,6 +4,13 @@ PRAGMA foreign_keys = ON;
 
 BEGIN TRANSACTION;
 
+CREATE TABLE schema_version (
+    versiune            INTEGER NOT NULL,
+    aplicata_la         TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO schema_version (versiune) VALUES (1);
+
 -- UtilizatorBaza si specializarile active Student si Profesor.
 CREATE TABLE utilizatori (
     id                  INTEGER PRIMARY KEY,
@@ -203,6 +210,16 @@ CREATE TABLE incercari_evaluare (
 
 CREATE INDEX idx_incercari_student ON incercari_evaluare(student_id);
 CREATE INDEX idx_incercari_evaluare ON incercari_evaluare(evaluare_id);
+
+CREATE TRIGGER blocheaza_incercare_duplicata
+BEFORE INSERT ON incercari_evaluare
+WHEN EXISTS (
+    SELECT 1 FROM incercari_evaluare
+    WHERE evaluare_id = NEW.evaluare_id AND student_id = NEW.student_id
+)
+BEGIN
+    SELECT RAISE(ABORT, 'EVALUARE_DEJA_SUSTINUTA');
+END;
 
 CREATE TABLE raspunsuri_chestionar (
     incercare_id        INTEGER NOT NULL,

@@ -12,7 +12,9 @@
 namespace {
 constexpr const char* selectEvaluari =
     "SELECT e.id, e.curs_id, e.profesor_id, e.nume, e.tip, e.limita_timp, "
-    "e.este_obligatorie, e.creat_la, c.numar_intrebari, ef.pondere "
+    "e.este_obligatorie, e.creat_la, "
+    "(SELECT COUNT(*) FROM intrebari_chestionar iq WHERE iq.chestionar_id = e.id), "
+    "ef.pondere "
     "FROM evaluari e "
     "LEFT JOIN chestionare c ON c.evaluare_id = e.id "
     "LEFT JOIN examene_finale ef ON ef.evaluare_id = e.id ";
@@ -130,9 +132,10 @@ EvaluareInregistrare transformaEvaluare(const std::vector<std::string>& rand) {
         }
         evaluare.numarIntrebari = convertesteIntregNenegativ(rand[8], "Numarul de intrebari");
     } else if (evaluare.tip == "examen_final") {
-        if (!rand[8].empty() || rand[9].empty()) {
+        if (rand[8].empty() || rand[9].empty()) {
             throw ExceptieEdu("Specializarea examenului final este invalida.");
         }
+        evaluare.numarIntrebari = convertesteIntregNenegativ(rand[8], "Numarul de intrebari");
         evaluare.pondere = convertesteReal(rand[9], "Ponderea");
     } else {
         throw ExceptieEdu("Tipul evaluarii citit din baza de date este invalid.");

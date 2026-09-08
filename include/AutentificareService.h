@@ -19,6 +19,8 @@ struct RezultatAutentificare {
     std::string email;
     std::optional<std::string> rol;
     std::string mesajPublic;
+    std::string nume;
+    std::string prenume;
 };
 
 class AutentificareService {

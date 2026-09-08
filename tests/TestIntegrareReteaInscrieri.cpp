@@ -118,6 +118,9 @@ int main() {
                          "login profesor a esuat");
                 verifica(!ProtocolEdu::cautaCamp(login.campuri, CampEdu::Parola),
                          "hash-ul parolei a fost trimis prin protocol");
+                const auto eligibiliInitial = client.listeazaStudentiEligibili(curs1);
+                verifica(eligibiliInitial.size() == 2,
+                         "lista initiala de studenti eligibili este incorecta");
                 verifica(client.executaCerere(cerereInscriere(student1, curs1)).cod ==
                              CodRezultatEdu::Succes,
                          "studentul existent nu a fost inscris");
@@ -126,6 +129,10 @@ int main() {
                              lista.front().nume == "Popescu" &&
                              lista.front().prenume == "Ion",
                          "StudentPublicEdu nu contine numele si prenumele");
+                const auto eligibiliDupaInscriere = client.listeazaStudentiEligibili(curs1);
+                verifica(eligibiliDupaInscriere.size() == 1 &&
+                             eligibiliDupaInscriere.front().id == student2,
+                         "studentul deja inscris nu a fost exclus dintre eligibili");
 
                 const auto duplicat = client.executaCerere(cerereInscriere(student1, curs1));
                 verifica(duplicat.cod == CodRezultatEdu::Conflict &&
